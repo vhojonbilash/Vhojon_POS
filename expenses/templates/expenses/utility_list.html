@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+  <div class="flex items-center justify-between mb-5">
+    <h1 class="text-2xl font-semibold">Utility Bills</h1>
+    <a href="{% url 'expenses:utility_create' %}"
+       class="px-4 py-2 rounded-xl bg-orange-600 text-white font-semibold">+ Add</a>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-100 shadow overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="text-slate-500 bg-slate-50">
+        <tr>
+          <th class="text-left p-3">Type</th>
+          <th class="text-left p-3">Amount</th>
+          <th class="text-left p-3">Date</th>
+          <th class="text-left p-3">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in items %}
+        <tr class="border-t">
+          <td class="p-3 font-semibold">{{ x.utility_type }}</td>
+          <td class="p-3">{{ x.amount }}</td>
+          <td class="p-3">{{ x.bill_date }}</td>
+          <td class="p-3 text-slate-600">{{ x.note }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="p-4 text-slate-500" colspan="4">No utility bills found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

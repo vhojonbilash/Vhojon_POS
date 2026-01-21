@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Vhojon Bilash POS{% endblock %}</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: { colors: { primary: "#0f172a", accent: "#f97316" } }
+      }
+    }
+  </script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-slate-100 min-h-screen">
+  <div class="flex min-h-screen">
+
+    <!-- Sidebar (global) -->
+    {% include "sidebar.html" %}
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col">
+
+      <!-- Topbar (global) -->
+      <nav class="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-semibold text-slate-800">{% block top_title %}Dashboard{% endblock %}</h1>
+          <p class="text-sm text-slate-500">{% block top_subtitle %}{% endblock %}</p>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-slate-600">
+            Logged in as <span class="font-medium">{{ request.user.username }}</span>
+          </div>
+          <a href="{% url 'logout' %}"
+             class="text-sm font-semibold text-orange-600 hover:text-orange-700">
+            Logout
+          </a>
+        </div>
+      </nav>
+
+      <!-- Messages -->
+      <div class="p-6 pb-0">
+        {% if messages %}
+          <div class="max-w-6xl mx-auto space-y-2">
+            {% for message in messages %}
+              <div class="rounded-xl px-4 py-3 shadow-sm border bg-white">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Page content -->
+      <main class="p-6 flex-1">
+        <div class="max-w-6xl mx-auto">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <style>
+    input, select, textarea{
+      width:100%;
+      border:1px solid rgb(226 232 240);
+      border-radius:12px;
+      padding:10px 12px;
+      background:white;
+      outline:none;
+    }
+    textarea{min-height:90px;}
+    label{display:block;font-weight:600;margin-bottom:6px;color:#334155;}
+  </style>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

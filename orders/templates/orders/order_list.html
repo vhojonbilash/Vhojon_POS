@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Order History | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Order History{% endblock %}
+{% block top_subtitle %}All POS & Online orders{% endblock %}
+
+{% block content %}
+
+  <!-- Top actions + search -->
+  <div class="bg-white rounded-2xl shadow p-5 border border-slate-200 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+
+      <div class="md:col-span-2">
+        <label class="text-sm font-semibold">Search</label>
+        <input
+          class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-200"
+          name="q" value="{{ q }}" placeholder="Order No / Customer name / Phone" />
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold">Status</label>
+        <select
+          class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
+          name="status">
+          <option value="">All</option>
+          {% for value,label in status_choices %}
+            <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold">Source</label>
+        <select
+          class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
+          name="source">
+          <option value="">All</option>
+          {% for value,label in source_choices %}
+            <option value="{{ value }}" {% if source == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="text-sm font-semibold">Due</label>
+        <select
+          class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
+          name="due">
+          {% for value,label in due_choices %}
+            <option value="{{ value }}" {% if due == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex gap-2">
+        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800">
+          Filter
+        </button>
+
+        <a href="{% url 'orders:order_list' %}"
+           class="px-4 py-2 rounded-xl bg-white border border-slate-200 font-semibold hover:bg-slate-50">
+          Reset
+        </a>
+
+        <a href="{% url 'orders:order_list' %}?due=1"
+           class="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700">
+          Due
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="flex items-center justify-between mb-3">
+    <div>
+      <h2 class="text-lg font-semibold text-slate-900">Orders</h2>
+      {% if page_obj %}
+        <p class="text-sm text-slate-500">
+          Showing
+          <span class="font-semibold text-slate-700">
+            {{ page_obj.start_index }}–{{ page_obj.end_index }}
+          </span>
+          of
+          <span class="font-semibold text-slate-700">
+            {{ page_obj.paginator.count }}
+          </span>
+        </p>
+      {% endif %}
+    </div>
+
+    <a href="{% url 'orders:order_create' %}"
+       class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 shadow">
+      + New Order
+    </a>
+  </div>
+
+  <!-- Orders table -->
+  <div class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-50">
+          <tr class="text-left text-slate-600 border-b">
+            <th class="py-3 px-4">Order No</th>
+            <th class="py-3 px-4">Customer</th>
+            <th class="py-3 px-4">Source</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4">Total</th>
+            <th class="py-3 px-4">Paid</th>
+            <th class="py-3 px-4">Due</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for o in page_obj %}
+            <tr class="border-b last:border-b-0 hover:bg-slate-50">
+              <td class="py-3 px-4 font-semibold">{{ o.order_no }}</td>
+              <td class="py-3 px-4">
+                {% if o.customer %}{{ o.customer }}{% else %}-{% endif %}
+              </td>
+              <td class="py-3 px-4">{{ o.source }}</td>
+              <td class="py-3 px-4">{{ o.status }}</td>
+              <td class="py-3 px-4 font-semibold">{{ o.grand_total }}</td>
+              <td class="py-3 px-4">{{ o.paid_total }}</td>
+              <td class="py-3 px-4 {% if o.due_total > 0 %}text-rose-600 font-semibold{% endif %}">
+                {{ o.due_total }}
+              </td>
+
+              <td class="py-3 px-4">
+                <div class="flex justify-end gap-2">
+                  <a href="{% url 'orders:order_detail' o.pk %}"
+                     class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50">
+                    View
+                  </a>
+                  <a href="{% url 'orders:order_update' o.pk %}"
+                     class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600">
+                    Edit
+                  </a>
+                  <a href="{% url 'orders:order_delete' o.pk %}"
+                     class="px-3 py-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                    Delete
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="py-8 text-center text-slate-500">No orders found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+  </div>
+
+  <!-- ✅ Pagination -->
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+
+      <p class="text-sm text-slate-500">
+        Page <span class="font-semibold text-slate-700">{{ page_obj.number }}</span>
+        of <span class="font-semibold text-slate-700">{{ page_obj.paginator.num_pages }}</span>
+      </p>
+
+      <div class="flex items-center gap-2">
+
+        {% with qs="q="|add:q|add:"&status="|add:status|add:"&source="|add:source|add:"&due="|add:due %}
+
+          <!-- First -->
+          {% if page_obj.number > 1 %}
+            <a href="?{{ qs }}&page=1"
+               class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-semibold">
+              « First
+            </a>
+          {% endif %}
+
+          <!-- Prev -->
+          {% if page_obj.has_previous %}
+            <a href="?{{ qs }}&page={{ page_obj.previous_page_number }}"
+               class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-semibold">
+              ← Prev
+            </a>
+          {% else %}
+            <span class="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-400 cursor-not-allowed">
+              ← Prev
+            </span>
+          {% endif %}
+
+          <!-- Page numbers (nearby only) -->
+          {% for n in page_obj.paginator.page_range %}
+            {% if n == page_obj.number %}
+              <span class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold">
+                {{ n }}
+              </span>
+            {% elif n >= page_obj.number|add:-2 and n <= page_obj.number|add:2 %}
+              <a href="?{{ qs }}&page={{ n }}"
+                 class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-semibold">
+                {{ n }}
+              </a>
+            {% endif %}
+          {% endfor %}
+
+          <!-- Next -->
+          {% if page_obj.has_next %}
+            <a href="?{{ qs }}&page={{ page_obj.next_page_number }}"
+               class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-semibold">
+              Next →
+            </a>
+          {% else %}
+            <span class="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-400 cursor-not-allowed">
+              Next →
+            </span>
+          {% endif %}
+
+          <!-- Last -->
+          {% if page_obj.number < page_obj.paginator.num_pages %}
+            <a href="?{{ qs }}&page={{ page_obj.paginator.num_pages }}"
+               class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-sm font-semibold">
+              Last »
+            </a>
+          {% endif %}
+
+        {% endwith %}
+      </div>
+    </div>
+  {% endif %}
+
+{% endblock %}

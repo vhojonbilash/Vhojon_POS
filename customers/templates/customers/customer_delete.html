@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Delete Customer | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Delete Customer{% endblock %}
+{% block top_subtitle %}{{ customer.name }} ({{ customer.phone }}){% endblock %}
+
+{% block content %}
+
+  <div class="bg-white rounded-2xl shadow border border-slate-200 p-6">
+    <h2 class="text-lg font-semibold text-slate-900">Are you sure?</h2>
+    <p class="text-slate-600 mt-2">
+      This will permanently delete <span class="font-semibold">{{ customer.name }}</span>.
+      Addresses will also be deleted.
+    </p>
+
+    <form method="post" class="mt-6 flex gap-3">
+      {% csrf_token %}
+      <button class="px-5 py-3 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700">
+        Yes, Delete
+      </button>
+      <a href="{% url 'customers:customer_detail' customer.pk %}"
+         class="px-5 py-3 rounded-xl bg-white border font-semibold hover:bg-slate-50">
+        Cancel
+      </a>
+    </form>
+  </div>
+
+{% endblock %}

@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-[calc(100vh-64px)] bg-slate-50">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- Hero Header -->
+    <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm mb-6">
+      <div class="absolute inset-0 bg-gradient-to-r from-orange-50 via-white to-emerald-50"></div>
+      <div class="relative p-5 sm:p-7">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+          <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-orange-100/70 border border-orange-200 flex items-center justify-center">
+              <svg class="w-6 h-6 text-orange-700" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M16 11c1.66 0 3-1.34 3-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 11c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 13c-2.76 0-5 2.24-5 5v1h10v-1c0-2.76-2.24-5-5-5Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 13c-1.1 0-2.12.36-2.95.97 1.2 1.08 1.95 2.65 1.95 4.38V19h8v-1c0-2.76-2.24-5-5-5Z" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Staff Management</h1>
+
+                {% if q or active %}
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+                               bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Filters Active
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+                               bg-slate-50 text-slate-700 border border-slate-200">
+                    All Records
+                  </span>
+                {% endif %}
+              </div>
+
+              <p class="mt-1 text-sm text-slate-600">
+                Manage employees, roles, and salaries — quick overview + detailed list.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <a href="{% url 'staff:role_list' %}"
+               class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 font-semibold hover:bg-slate-50 transition">
+              Roles
+            </a>
+            <a href="{% url 'staff:staff_create' %}"
+               class="px-4 py-2.5 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700 transition shadow-sm">
+              + Add Staff
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <!-- Total -->
+      <div class="relative overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition">
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-50 to-white"></div>
+        <div class="relative">
+          <p class="text-sm font-semibold text-slate-600">Total Staff</p>
+          <p class="text-3xl font-extrabold text-slate-900 mt-2">{{ total_staff }}</p>
+          <p class="text-xs text-slate-500 mt-2">All employees (active + inactive)</p>
+        </div>
+      </div>
+
+      <!-- Active -->
+      <div class="relative overflow-hidden bg-white rounded-2xl border border-emerald-200 shadow-sm p-5 hover:shadow-md transition">
+        <div class="absolute inset-0 bg-gradient-to-br from-emerald-50 to-white"></div>
+        <div class="relative">
+          <p class="text-sm font-semibold text-slate-600">Active Staff</p>
+          <p class="text-3xl font-extrabold text-emerald-700 mt-2">{{ active_staff }}</p>
+          <p class="text-xs text-slate-500 mt-2">Currently working employees</p>
+        </div>
+      </div>
+
+      <!-- Inactive -->
+      <div class="relative overflow-hidden bg-white rounded-2xl border border-rose-200 shadow-sm p-5 hover:shadow-md transition">
+        <div class="absolute inset-0 bg-gradient-to-br from-rose-50 to-white"></div>
+        <div class="relative">
+          <p class="text-sm font-semibold text-slate-600">Inactive Staff</p>
+          <p class="text-3xl font-extrabold text-rose-700 mt-2">{{ inactive_staff }}</p>
+          <p class="text-xs text-slate-500 mt-2">Former / paused employees</p>
+        </div>
+      </div>
+
+      <!-- Salary total -->
+      <div class="relative overflow-hidden bg-white rounded-2xl border border-orange-200 shadow-sm p-5 hover:shadow-md transition">
+        <div class="absolute inset-0 bg-gradient-to-br from-orange-50 to-white"></div>
+        <div class="relative">
+          <p class="text-sm font-semibold text-slate-600">Total Salary (Active)</p>
+          <p class="text-3xl font-extrabold text-orange-700 mt-2">৳ {{ total_salary }}</p>
+          <p class="text-xs text-slate-500 mt-2">Monthly payroll estimate</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters + Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-5">
+      <!-- Filters -->
+      <form method="get" class="lg:col-span-9 bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Search & Filter</p>
+              <p class="text-xs text-slate-500">Find staff quickly</p>
+            </div>
+          </div>
+
+          <a href="{% url 'staff:staff_create' %}"
+             class="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-50 border border-orange-100 text-orange-800 font-semibold hover:bg-orange-100 transition">
+            <span>+ Quick Add</span>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <!-- Search -->
+          <div class="sm:col-span-7">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Search</label>
+            <div class="relative">
+              <input name="q" value="{{ q }}"
+                     placeholder="Search by name, phone, role..."
+                     class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white
+                            focus:ring-2 focus:ring-orange-200 focus:border-orange-300 focus:outline-none">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M21 21l-4.3-4.3m1.8-5.2a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div class="sm:col-span-3">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+            <select name="active"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white
+                           focus:ring-2 focus:ring-orange-200 focus:border-orange-300 focus:outline-none">
+              <option value="">All</option>
+              <option value="1" {% if active == "1" %}selected{% endif %}>Active</option>
+              <option value="0" {% if active == "0" %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+
+          <!-- Buttons -->
+          <div class="sm:col-span-2 flex gap-2">
+            <button class="w-full px-4 py-2.5 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700 transition shadow-sm">
+              Filter
+            </button>
+            <a href="{% url 'staff:staff_list' %}"
+               class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 text-center transition">
+              Reset
+            </a>
+          </div>
+        </div>
+      </form>
+
+      <!-- Quick Actions -->
+      <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+        <p class="text-sm font-bold text-slate-900">Quick Actions</p>
+        <p class="text-xs text-slate-500 mt-1">Fast access</p>
+
+        <div class="mt-4 space-y-2">
+          <a href="{% url 'staff:staff_create' %}"
+             class="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 hover:bg-orange-100 transition">
+            <span class="font-semibold text-orange-900">Add Staff</span>
+            <span class="text-orange-700">➜</span>
+          </a>
+
+          <a href="{% url 'staff:role_list' %}"
+             class="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition">
+            <span class="font-semibold text-slate-900">Manage Roles</span>
+            <span class="text-slate-700">➜</span>
+          </a>
+
+          <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p class="text-xs font-semibold text-slate-700">Tip</p>
+            <p class="text-xs text-slate-500 mt-1">
+              Instead of deleting staff, make them <span class="font-semibold">Inactive</span> to keep salary history.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-bold text-slate-900">Staff List</p>
+          <p class="text-xs text-slate-500">Showing latest results</p>
+        </div>
+
+        {% if q or active %}
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Filtered
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-white text-slate-600 border-b border-slate-200 z-10">
+            <tr>
+              <th class="text-left p-3 font-semibold">Staff</th>
+              <th class="text-left p-3 font-semibold">Phone</th>
+              <th class="text-left p-3 font-semibold">Role</th>
+              <th class="text-left p-3 font-semibold">Salary</th>
+              <th class="text-left p-3 font-semibold">Joined</th>
+              <th class="text-left p-3 font-semibold">Status</th>
+              <th class="text-right p-3 font-semibold">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-slate-100">
+            {% for s in staff_list %}
+              <tr class="hover:bg-slate-50/70 transition">
+                <td class="p-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-extrabold text-slate-700">
+                      {{ s.name|slice:":1"|upper }}
+                    </div>
+                    <div>
+                      <a class="font-semibold text-slate-900 hover:text-orange-700"
+                         href="{% url 'staff:staff_detail' s.pk %}">
+                        {{ s.name }}
+                      </a>
+                      <p class="text-xs text-slate-500">{{ s.role.name }}</p>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="p-3 text-slate-700">{{ s.phone|default:"—" }}</td>
+
+                <td class="p-3">
+                  <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                    {{ s.role.name }}
+                  </span>
+                </td>
+
+                <td class="p-3 font-extrabold text-slate-900">
+                  <span class="inline-flex items-center gap-1">
+                    <span class="text-slate-500 font-semibold">৳</span>
+                    {{ s.monthly_salary }}
+                  </span>
+                </td>
+
+                <td class="p-3 text-slate-700">{{ s.joined_at|date:"M d, Y"|default:"—" }}</td>
+
+                <td class="p-3">
+                  {% if s.is_active %}
+                    <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Active
+                    </span>
+                  {% else %}
+                    <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                      Inactive
+                    </span>
+                  {% endif %}
+                </td>
+
+                <td class="p-3">
+                  <div class="flex justify-end gap-2">
+                    <a href="{% url 'staff:staff_update' s.pk %}"
+                       class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold transition">
+                      Edit
+                    </a>
+                    <a href="{% url 'staff:staff_delete' s.pk %}"
+                       class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-semibold transition">
+                      Delete
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="p-6 text-slate-500">No staff found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+      <div class="mt-4 flex items-center justify-between text-sm">
+        <div class="text-slate-500">
+          Page {{ page_obj.number }} of {{ paginator.num_pages }}
+        </div>
+        <div class="flex gap-2">
+          {% if page_obj.has_previous %}
+            <a class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50"
+               href="?q={{ q }}&active={{ active }}&page={{ page_obj.previous_page_number }}">Prev</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50"
+               href="?q={{ q }}&active={{ active }}&page={{ page_obj.next_page_number }}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

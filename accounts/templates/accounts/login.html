@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Login | Vhojon Bilash POS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md bg-white/10 backdrop-blur border border-white/10 rounded-2xl shadow-xl p-6">
+    <h1 class="text-2xl font-semibold text-white">Vhojon Bilash POS</h1>
+    <p class="text-sm text-white/70 mt-1">Admin Login</p>
+
+    {% if messages %}
+      <div class="mt-4 space-y-2">
+        {% for message in messages %}
+          <div class="text-sm rounded-lg px-3 py-2 bg-red-500/15 text-red-200 border border-red-500/30">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="POST" class="mt-6 space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label class="text-sm text-white/80">Username</label>
+        <input name="username" type="text" required
+               class="mt-1 w-full rounded-xl bg-white/10 text-white placeholder-white/40 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-orange-400"
+               placeholder="Enter admin username">
+      </div>
+
+      <div>
+        <label class="text-sm text-white/80">Password</label>
+        <input name="password" type="password" required
+               class="mt-1 w-full rounded-xl bg-white/10 text-white placeholder-white/40 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-orange-400"
+               placeholder="Enter password">
+      </div>
+
+      <button type="submit"
+              class="w-full rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 transition">
+        Login
+      </button>
+    </form>
+
+    <p class="text-xs text-white/50 mt-4">
+      Only admin accounts can login.
+    </p>
+  </div>
+
+</body>
+</html>

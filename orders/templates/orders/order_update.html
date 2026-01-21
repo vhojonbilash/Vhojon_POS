@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Edit Order | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Edit Order{% endblock %}
+{% block top_subtitle %}Order No: {{ order.order_no }}{% endblock %}
+
+{% block content %}
+
+  <style>
+    .vb-badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; font-weight: 700; }
+    .vb-badge-saved { background: rgba(15, 23, 42, .9); color: white; }
+    .vb-badge-new { background: rgba(16, 185, 129, .15); color: rgb(5, 150, 105); }
+  </style>
+
+  <!-- Top actions -->
+  <div class="flex items-center justify-between mb-6">
+    <a href="{% url 'orders:order_detail' order.pk %}"
+       class="px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-slate-50">
+      ← Back to Details
+    </a>
+
+    <div class="flex gap-2">
+      <a href="{% url 'orders:order_list' %}"
+         class="px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-slate-50">
+        Order History
+      </a>
+    </div>
+  </div>
+
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    <!-- Order Info -->
+    <div class="rounded-3xl border border-slate-200 shadow bg-gradient-to-br from-white to-slate-50 p-6">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-slate-900">Order Info</h2>
+        <p class="text-sm text-slate-600">Update source, status, customer etc.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {{ form.as_p }}
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="rounded-3xl border border-slate-200 shadow bg-gradient-to-br from-white to-emerald-50/40 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">Items</h2>
+          <p class="text-sm text-slate-600">Add / remove products and update quantities.</p>
+        </div>
+
+        <button type="button" id="add-item-btn"
+          class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 shadow">
+          + Add Item
+        </button>
+      </div>
+
+      {{ items_formset.management_form }}
+
+      <div id="items-container" class="space-y-3">
+        {% for f in items_formset %}
+          {# Hide the extra empty row (usually last) #}
+          {% if f.instance.pk or f.has_changed %}
+            <div class="item-row rounded-2xl border border-emerald-200 bg-white/70 shadow-sm p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="text-sm font-semibold text-slate-800">
+                  Item {{ forloop.counter }}
+                </div>
+
+                <div class="flex items-center gap-2">
+                  {% if f.instance.pk %}
+                    <span class="vb-badge vb-badge-saved">Saved</span>
+                  {% else %}
+                    <span class="vb-badge vb-badge-new">New</span>
+                    <button type="button"
+                            class="remove-new-item px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700">
+                      Remove
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {{ f.as_p }}
+              </div>
+
+              {% if f.instance.pk and f.DELETE %}
+                <div class="mt-4">
+                  <div class="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2">
+                    <span class="font-semibold">Delete this item?</span>
+                    {{ f.DELETE }}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <template id="item-empty-template">
+        <div class="item-row rounded-2xl border border-emerald-200 bg-white/70 shadow-sm p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold text-slate-800">New Item</div>
+
+            <button type="button"
+                    class="remove-new-item px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700">
+              Remove
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {{ items_formset.empty_form.as_p }}
+          </div>
+        </div>
+      </template>
+
+      <p class="mt-4 text-xs text-slate-500">
+        Tip: For saved items use the Delete checkbox. For new items use Remove.
+      </p>
+    </div>
+
+    <!-- Payments -->
+    <div class="rounded-3xl border border-slate-200 shadow bg-gradient-to-br from-white to-indigo-50/40 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">Payments</h2>
+          <p class="text-sm text-slate-600">Add / remove payments and update references.</p>
+        </div>
+
+        <button type="button" id="add-pay-btn"
+          class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 shadow">
+          + Add Payment
+        </button>
+      </div>
+
+      {{ pay_formset.management_form }}
+
+      <div id="pay-container" class="space-y-3">
+        {% for f in pay_formset %}
+          {# ✅ Hide the extra empty payment row #}
+          {% if f.instance.pk or f.has_changed %}
+            <div class="pay-row rounded-2xl border border-indigo-200 bg-white/70 shadow-sm p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="text-sm font-semibold text-slate-800">
+                  Payment {{ forloop.counter }}
+                </div>
+
+                <div class="flex items-center gap-2">
+                  {% if f.instance.pk %}
+                    <span class="vb-badge vb-badge-saved">Saved</span>
+                  {% else %}
+                    <span class="vb-badge vb-badge-new">New</span>
+                    <button type="button"
+                            class="remove-new-pay px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700">
+                      Remove
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {{ f.as_p }}
+              </div>
+
+              {% if f.instance.pk and f.DELETE %}
+                <div class="mt-4">
+                  <div class="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2">
+                    <span class="font-semibold">Delete this payment?</span>
+                    {{ f.DELETE }}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <template id="pay-empty-template">
+        <div class="pay-row rounded-2xl border border-indigo-200 bg-white/70 shadow-sm p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold text-slate-800">New Payment</div>
+
+            <button type="button"
+                    class="remove-new-pay px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700">
+              Remove
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {{ pay_formset.empty_form.as_p }}
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+      <button
+        class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold hover:opacity-95 shadow">
+        Save Changes
+      </button>
+
+      <a href="{% url 'orders:order_detail' order.pk %}"
+         class="px-5 py-3 rounded-xl bg-white border border-slate-200 font-semibold hover:bg-slate-50">
+        Cancel
+      </a>
+    </div>
+
+  </form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    // ---------- ITEMS ----------
+    const addItemBtn = document.getElementById("add-item-btn");
+    const itemContainer = document.getElementById("items-container");
+    const itemTemplate = document.getElementById("item-empty-template");
+
+    // ---------- PAYMENTS ----------
+    const addPayBtn = document.getElementById("add-pay-btn");
+    const payContainer = document.getElementById("pay-container");
+    const payTemplate = document.getElementById("pay-empty-template");
+
+    // Find TOTAL_FORMS safely for each formset (important!)
+    // We select the closest TOTAL_FORMS to each container.
+    function findTotalFormsInput(containerEl) {
+      // Prefer nearest management inputs in the form:
+      const form = containerEl.closest("form");
+      const all = form.querySelectorAll('input[name$="-TOTAL_FORMS"]');
+      if (all.length === 1) return all[0];
+
+      // If multiple formsets exist, match by prefix: look for the one whose name starts with the same prefix as empty_form fields.
+      // We'll infer prefix from first input/select in the container/template.
+      const sample = containerEl.querySelector("input, select, textarea");
+      if (sample && sample.name) {
+        const prefix = sample.name.split("-")[0]; // e.g. items-0-product -> items
+        for (const t of all) {
+          if (t.name.startsWith(prefix + "-")) return t;
+        }
+      }
+
+      // fallback
+      return all[0];
+    }
+
+    const itemTotalForms = findTotalFormsInput(itemContainer);
+    const payTotalForms  = findTotalFormsInput(payContainer);
+
+    function cloneFromTemplate(templateEl, index) {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = templateEl.innerHTML.trim();
+
+      wrapper.querySelectorAll("input, select, textarea, label").forEach(el => {
+        if (el.name) el.name = el.name.replace(/__prefix__/g, index);
+        if (el.id) el.id = el.id.replace(/__prefix__/g, index);
+        if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/__prefix__/g, index);
+      });
+
+      return wrapper.firstElementChild;
+    }
+
+    // Add Item
+    addItemBtn?.addEventListener("click", function () {
+      const idx = parseInt(itemTotalForms.value, 10);
+      const node = cloneFromTemplate(itemTemplate, idx);
+      itemContainer.appendChild(node);
+      itemTotalForms.value = idx + 1;
+    });
+
+    // Add Payment
+    addPayBtn?.addEventListener("click", function () {
+      const idx = parseInt(payTotalForms.value, 10);
+      const node = cloneFromTemplate(payTemplate, idx);
+      payContainer.appendChild(node);
+      payTotalForms.value = idx + 1;
+    });
+
+    // Remove New Item
+    document.addEventListener("click", function (e) {
+      const btnItem = e.target.closest(".remove-new-item");
+      if (btnItem) {
+        const row = btnItem.closest(".item-row");
+        if (row) row.remove();
+      }
+
+      const btnPay = e.target.closest(".remove-new-pay");
+      if (btnPay) {
+        const row = btnPay.closest(".pay-row");
+        if (row) row.remove();
+      }
+    });
+  })();
+</script>
+{% endblock %}

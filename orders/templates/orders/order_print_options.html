@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Print Order | {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto p-6 mt-12 text-center space-y-5">
+
+  <div class="bg-white border rounded-2xl p-6 shadow">
+    <h1 class="text-2xl font-extrabold text-slate-900">Order Created ✅</h1>
+    <p class="text-slate-600 mt-2">Order No: <span class="font-bold">{{ order.order_no }}</span></p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+      <button id="btn-chef"
+              class="py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-extrabold">
+        Print for Chef (KOT)
+      </button>
+
+      <button id="btn-customer"
+              class="py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold">
+        Print for Customer
+      </button>
+    </div>
+
+    <p id="msg" class="text-sm mt-4 text-slate-600"></p>
+
+    <div class="mt-4">
+      <a href="{% url 'orders:order_detail' order.pk %}"
+         class="text-sm font-semibold text-slate-900 underline">
+        View Order Details
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const msg = document.getElementById("msg");
+
+  async function doPrint(url){
+    msg.textContent = "Printing...";
+    try{
+      const res = await fetch(url);
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        msg.textContent = "❌ Print failed: " + (data.error || "Unknown error");
+        msg.className = "text-sm mt-4 text-red-600";
+        return;
+      }
+      msg.textContent = "✅ Printed successfully!";
+      msg.className = "text-sm mt-4 text-emerald-700 font-semibold";
+    }catch(e){
+      msg.textContent = "❌ Print error. Check server console.";
+      msg.className = "text-sm mt-4 text-red-600";
+    }
+  }
+
+  document.getElementById("btn-chef").onclick = () =>
+    doPrint("{% url 'orders:order_print_chef' order.pk %}");
+
+  document.getElementById("btn-customer").onclick = () =>
+    doPrint("{% url 'orders:order_print_customer' order.pk %}");
+</script>
+{% endblock %}

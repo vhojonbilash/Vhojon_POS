@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+
+  <div class="flex justify-between mb-6">
+    <h1 class="text-2xl font-bold">Categories</h1>
+    <a href="{% url 'catalog:category_create' %}"
+       class="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold">
+      + Add Category
+    </a>
+  </div>
+
+  <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
+    <table class="w-full text-sm table-fixed">
+      <thead class="bg-slate-50">
+        <tr class="text-slate-700">
+          <th class="px-4 py-3 text-left w-5/12">Name</th>
+
+          <!-- ✅ Center aligned -->
+          <th class="px-4 py-3 text-center w-3/12">Parent</th>
+
+          <!-- ✅ Center aligned -->
+          <th class="px-4 py-3 text-center w-2/12">Status</th>
+
+          <th class="px-4 py-3 text-right w-2/12">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-slate-100">
+        {% for c in categories %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-semibold truncate">{{ c.name }}</td>
+
+          <!-- ✅ Center aligned -->
+          <td class="px-4 py-3 text-center text-slate-700">
+            {{ c.parent.name|default:"—" }}
+          </td>
+
+          <!-- ✅ Center aligned + badge style -->
+          <td class="px-4 py-3 text-center">
+            {% if c.is_active %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold
+                           bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Active
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold
+                           bg-rose-50 text-rose-700 border border-rose-200">
+                Inactive
+              </span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-3 text-right">
+            <div class="inline-flex gap-2">
+              <a href="{% url 'catalog:category_update' c.id %}"
+                 class="px-3 py-2 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800">
+                Edit
+              </a>
+              <a href="{% url 'catalog:category_delete' c.id %}"
+                 class="px-3 py-2 bg-rose-600 text-white rounded-lg font-semibold hover:bg-rose-700">
+                Delete
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="px-4 py-10 text-center text-slate-500">
+            No categories found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

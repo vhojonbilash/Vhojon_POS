@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Delete Order | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Delete Order{% endblock %}
+{% block top_subtitle %}Order No: {{ order.order_no }}{% endblock %}
+
+{% block content %}
+
+  <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+    <h2 class="text-lg font-semibold text-slate-900">Are you sure?</h2>
+    <p class="text-slate-600 mt-2">
+      You are going to delete <span class="font-semibold">{{ order.order_no }}</span>.
+      This action cannot be undone.
+    </p>
+
+    <form method="post" class="mt-6 flex gap-3">
+      {% csrf_token %}
+      <button class="px-5 py-3 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700">
+        Yes, Delete
+      </button>
+
+      <a href="{% url 'orders:order_detail' order.pk %}"
+         class="px-5 py-3 rounded-xl bg-white border font-semibold hover:bg-slate-50">
+        Cancel
+      </a>
+    </form>
+  </div>
+
+{% endblock %}

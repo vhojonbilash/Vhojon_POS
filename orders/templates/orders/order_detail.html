@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Order Details | Vhojon Bilash POS{% endblock %}
+
+{% block top_title %}Order Details{% endblock %}
+{% block top_subtitle %}Order No: {{ order.order_no }}{% endblock %}
+
+{% block content %}
+
+  <!-- Header actions -->
+  <div class="flex items-center justify-end mb-6">
+    <a href="{% url 'orders:order_create' %}"
+       class="px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-slate-50">
+      + New Order
+    </a>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+    <!-- Customer -->
+    <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+      <p class="text-sm text-slate-500 mb-2">Customer</p>
+
+      <p class="text-lg font-semibold text-slate-900">
+        {% if order.customer %}{{ order.customer }}{% else %}Walk-in{% endif %}
+      </p>
+
+      {% if order.customer_address %}
+        <p class="text-sm text-slate-600 mt-2">{{ order.customer_address }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Status -->
+    <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+      <p class="text-sm text-slate-500 mb-2">Status</p>
+
+      <p class="text-lg font-semibold text-slate-900">
+        {{ order.status }}
+      </p>
+
+      <p class="text-sm text-slate-600 mt-2">
+        Payment: <span class="font-semibold">{{ order.payment_status }}</span>
+      </p>
+    </div>
+
+    <!-- Totals -->
+    <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+      <p class="text-sm text-slate-500 mb-4">Totals</p>
+
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-slate-600">Subtotal</span>
+          <span class="font-semibold text-slate-900">{{ order.subtotal }}</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-600">Discount</span>
+          <span class="font-semibold text-slate-900">{{ order.discount_amount }}</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-600">Grand Total</span>
+          <span class="font-semibold text-slate-900">{{ order.grand_total }}</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-600">Paid</span>
+          <span class="font-semibold text-slate-900">{{ order.paid_total }}</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-600">Due</span>
+          <span class="font-semibold text-rose-600">{{ order.due_total }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Items -->
+  <div class="bg-white rounded-2xl shadow p-6 border border-slate-200 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Items</h2>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-2 pr-4">Product</th>
+            <th class="py-2 pr-4">Qty</th>
+            <th class="py-2 pr-4">Price</th>
+            <th class="py-2 pr-4">Discount</th>
+            <th class="py-2 pr-4">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+            <tr class="border-b last:border-b-0">
+              <td class="py-3 pr-4">{{ it.product }}</td>
+              <td class="py-3 pr-4">{{ it.qty }}</td>
+              <td class="py-3 pr-4">{{ it.price }}</td>
+              <td class="py-3 pr-4">{{ it.discount_amount }}</td>
+              <td class="py-3 pr-4 font-semibold">{{ it.line_total }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="py-4 text-slate-500">No items found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Payments -->
+  <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+    <h2 class="text-lg font-semibold mb-4">Payments</h2>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b">
+            <th class="py-2 pr-4">Method</th>
+            <th class="py-2 pr-4">Amount</th>
+            <th class="py-2 pr-4">Reference</th>
+            <th class="py-2 pr-4">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+            <tr class="border-b last:border-b-0">
+              <!-- ✅ FIXED METHOD DISPLAY -->
+              <td class="py-3 pr-4">
+                {% if p.get_method_display %}
+                  {{ p.get_method_display }}
+                {% elif p.get_payment_method_display %}
+                  {{ p.get_payment_method_display }}
+                {% elif p.method %}
+                  {{ p.method }}
+                {% elif p.payment_method %}
+                  {{ p.payment_method }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td class="py-3 pr-4 font-semibold">{{ p.amount }}</td>
+              <td class="py-3 pr-4">{{ p.reference|default:"-" }}</td>
+              <td class="py-3 pr-4">{{ p.created_at }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="py-4 text-slate-500">No payments found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% endblock %}

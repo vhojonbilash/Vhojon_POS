@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit Product{% else %}Add Product{% endif %}{% endblock %}
+
+{% block content %}
+
+<div class="max-w-3xl mx-auto">
+  <div class="mb-5">
+    <h1 class="text-[22px] font-semibold text-slate-800">
+      {% if object %}Edit Product{% else %}Add Product{% endif %}
+    </h1>
+    <p class="text-slate-500 text-sm">Fill in the product information.</p>
+  </div>
+
+  <form method="post" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <!-- Category -->
+    <div>
+      <label class="block text-sm font-medium text-slate-600 mb-1">Category</label>
+      <div class="rounded-xl border border-slate-200 px-3 py-2 bg-white">
+        {{ form.category }}
+      </div>
+      {% for e in form.category.errors %}
+        <p class="text-rose-600 text-sm mt-1">{{ e }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- Name -->
+    <div>
+      <label class="block text-sm font-medium text-slate-600 mb-1">Name</label>
+      <div class="rounded-xl border border-slate-200 px-3 py-2 bg-white">
+        {{ form.name }}
+      </div>
+      {% for e in form.name.errors %}
+        <p class="text-rose-600 text-sm mt-1">{{ e }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- SKU -->
+    <div>
+      <label class="block text-sm font-medium text-slate-600 mb-1">SKU (optional)</label>
+      <div class="rounded-xl border border-slate-200 px-3 py-2 bg-white">
+        {{ form.sku }}
+      </div>
+      {% for e in form.sku.errors %}
+        <p class="text-rose-600 text-sm mt-1">{{ e }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- Prices -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-600 mb-1">Sale Price</label>
+        <div class="rounded-xl border border-slate-200 px-3 py-2 bg-white">
+          {{ form.sale_price }}
+        </div>
+        {% for e in form.sale_price.errors %}
+          <p class="text-rose-600 text-sm mt-1">{{ e }}</p>
+        {% endfor %}
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-600 mb-1">Cost Price (optional)</label>
+        <div class="rounded-xl border border-slate-200 px-3 py-2 bg-white">
+          {{ form.cost_price }}
+        </div>
+        {% for e in form.cost_price.errors %}
+          <p class="text-rose-600 text-sm mt-1">{{ e }}</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Active -->
+    <div class="flex items-center gap-3 pt-1">
+      {{ form.is_active }}
+      <label class="text-sm font-medium text-slate-700">Active</label>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-2">
+      <a href="{% url 'catalog:product_list' %}"
+         class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50">
+        Cancel
+      </a>
+
+      <button class="px-5 py-2 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700 shadow-sm">
+        Save
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

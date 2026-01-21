@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-xl mx-auto p-6">
+  <div class="bg-white p-6 rounded-2xl border shadow-sm">
+    <h1 class="text-xl font-bold mb-2">Delete Category</h1>
+    <p class="mb-6">Delete <b>{{ object.name }}</b>?</p>
+
+    <form method="post" class="flex gap-2">
+      {% csrf_token %}
+      <button class="px-5 py-3 bg-rose-600 text-white rounded-xl font-bold">
+        Delete
+      </button>
+      <a href="{% url 'catalog:category_list' %}" class="px-5 py-3 border rounded-xl font-bold">
+        Cancel
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

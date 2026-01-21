@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+  <div class="bg-white rounded-2xl border border-slate-100 shadow p-6">
+    <h1 class="text-xl font-semibold mb-4">
+      {{ page_title|default:"Create" }}
+    </h1>
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      {% for field in form %}
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">
+            {{ field.label }}
+          </label>
+
+          {{ field }}
+
+          {% if field.errors %}
+            <p class="text-sm text-rose-600 mt-1">
+              {{ field.errors|striptags }}
+            </p>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="flex gap-2 pt-2">
+        <button
+          class="px-4 py-2 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700">
+          Save
+        </button>
+
+        <a href="javascript:history.back()"
+           class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Styles -->
+<style>
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 14px;
+    padding: 10px 12px;
+    outline: none;
+    background: white;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: rgb(249 115 22);
+    box-shadow: 0 0 0 3px rgba(249,115,22,.15);
+  }
+</style>
+
+<!-- Auto-fill Staff Salary -->
+<script>
+(function () {
+  const staffEl = document.getElementById("id_staff");
+  const amountEl = document.getElementById("id_amount");
+
+  // Run only for Staff Salary form
+  if (!staffEl || !amountEl) return;
+
+  async function loadSalary() {
+    const staffId = staffEl.value;
+    if (!staffId) return;
+
+    try {
+      const res = await fetch(
+        "{% url 'expenses:staff_salary_api' %}?staff_id=" + staffId
+      );
+      const data = await res.json();
+
+      if (data.salary !== undefined) {
+        amountEl.value = data.salary;
+      }
+    } catch (err) {
+      console.error("Failed to load staff salary", err);
+    }
+  }
+
+  // Load salary when page opens (default staff selected)
+  loadSalary();
+
+  // Load salary when staff changes
+  staffEl.addEventListener("change", () => {
+    amountEl.value = "";
+    loadSalary();
+  });
+})();
+</script>
+{% endblock %}

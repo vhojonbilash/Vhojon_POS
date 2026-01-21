@@ -1,0 +1,168 @@
+{% load static %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<aside class="w-72 h-screen sticky top-0 text-white flex flex-col
+              bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900
+              border-r border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.35)]">
+
+  <!-- Brand -->
+  <div class="px-5 py-5 border-b border-white/10">
+    <div class="flex items-center gap-3">
+      <div class="h-12 w-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
+        <img src="{% static 'images/logo.png' %}" alt="Logo" class="h-9 w-9 object-contain">
+      </div>
+
+      <div class="leading-tight">
+        <h1 class="text-[16px] font-extrabold tracking-wide">Vhojon Bilash</h1>
+        <p class="text-[11px] text-white/60">POS & Financial System</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu (scroll only this part) -->
+  <nav class="flex-1 px-3 py-4 overflow-y-auto">
+
+    <!-- Section helper -->
+    <style>
+      .sb-item{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:16px; transition:.15s; }
+      .sb-item:hover{ background:rgba(255,255,255,.08); }
+      .sb-icon{ width:20px; display:inline-flex; justify-content:center; }
+      .sb-active{ background:linear-gradient(90deg, rgba(255,166,9,.20), rgba(66,173,54,.12)); border:1px solid rgba(255,255,255,.10); }
+      .sb-dot{ height:6px; width:6px; border-radius:999px; background:rgba(255,255,255,.22); }
+    </style>
+
+    <!-- OVERVIEW -->
+    <div class="mb-5">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Overview</p>
+      </div>
+
+      <a href="{% url 'home' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'home' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-chart-line text-indigo-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Dashboard</span>
+      </a>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="mb-5">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Orders & Billing</p>
+      </div>
+
+      <a href="{% url 'orders:order_create' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'order_create' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-receipt text-orange-300"></i>
+        </span>
+        <span class="text-sm font-semibold">New POS Order</span>
+      </a>
+
+      <a href="{% url 'orders:order_list' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'order_list' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-rectangle-list text-orange-200"></i>
+        </span>
+        <span class="text-sm font-semibold">Order History</span>
+      </a>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="mb-5">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Products</p>
+      </div>
+
+      <a href="{% url 'catalog:product_list' %}"
+         class="sb-item {% if request.resolver_match.app_name == 'catalog' and request.resolver_match.url_name == 'product_list' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-boxes-stacked text-sky-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Manage Products</span>
+      </a>
+
+      <!-- ✅ TAXONOMY / CATEGORY -->
+      <a href="{% url 'catalog:category_list' %}"
+         class="sb-item {% if request.resolver_match.app_name == 'catalog' and request.resolver_match.url_name == 'category_list' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-tags text-cyan-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Categories</span>
+      </a>
+    </div>
+
+    <!-- STAFF -->
+    <div class="mb-5">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Staff</p>
+      </div>
+
+      <a href="{% url 'staff:staff_list' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'staff_list' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-user-group text-violet-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Staff Management</span>
+      </a>
+
+      <a href="{% url 'staff:role_list' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'role_list' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-id-badge text-violet-200"></i>
+        </span>
+        <span class="text-sm font-semibold">Staff Roles</span>
+      </a>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="mb-5">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Customers</p>
+      </div>
+
+      <a href="{% url 'customers:customer_list' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'customer_list' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-users text-emerald-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Customers</span>
+      </a>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="mb-2">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Expenses</p>
+      </div>
+
+      <a href="{% url 'expenses:dashboard' %}"
+         class="sb-item {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.app_name == 'expenses' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-money-bill-wave text-rose-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Expenses</span>
+      </a>
+    </div>
+
+  </nav>
+
+  <!-- Sticky Logout -->
+  <div class="px-4 py-4 border-t border-white/10 bg-slate-950/80 backdrop-blur">
+    <a href="{% url 'logout' %}"
+       class="flex items-center justify-center gap-3 px-4 py-3 rounded-2xl font-bold
+              bg-gradient-to-r from-rose-500/20 to-red-500/20
+              text-rose-200 hover:text-white hover:from-rose-500 hover:to-red-500 transition">
+      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <span>Logout</span>
+    </a>
+  </div>
+
+</aside>

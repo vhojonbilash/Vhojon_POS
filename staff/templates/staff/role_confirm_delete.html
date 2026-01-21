@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-[calc(100vh-64px)] bg-slate-50">
+  <div class="max-w-xl mx-auto px-4 sm:px-6 py-10">
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <h1 class="text-xl font-bold text-slate-900">Delete Role</h1>
+      <p class="text-sm text-slate-500 mt-2">
+        Are you sure you want to delete <span class="font-semibold text-slate-900">{{ object.name }}</span>?
+        If any staff uses this role, it will be blocked (PROTECT).
+      </p>
+
+      <form method="post" class="mt-6 flex justify-end gap-2">
+        {% csrf_token %}
+        <a href="{% url 'staff:role_list' %}"
+           class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">
+          Cancel
+        </a>
+        <button class="px-4 py-2.5 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700">
+          Delete
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

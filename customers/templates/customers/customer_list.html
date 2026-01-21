@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Customers | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Customers{% endblock %}
+{% block top_subtitle %}Search & filter customer list{% endblock %}
+
+{% block content %}
+
+  <!-- Filters Card -->
+  <div class="rounded-3xl border border-slate-200 shadow bg-gradient-to-br from-white to-slate-50 p-5 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+
+      <!-- Search -->
+      <div class="md:col-span-5">
+        <label class="text-sm font-semibold text-slate-700">Search</label>
+        <input name="q" value="{{ q }}" placeholder="Search by name or phone..." />
+      </div>
+
+      <!-- Due filter -->
+      <div class="md:col-span-2">
+        <label class="text-sm font-semibold text-slate-700">Due Filter</label>
+        <select name="due">
+          <option value="" {% if due == "" %}selected{% endif %}>All</option>
+          <option value="due" {% if due == "due" %}selected{% endif %}>Due Customers</option>
+          <option value="clear" {% if due == "clear" %}selected{% endif %}>No Due</option>
+        </select>
+      </div>
+
+      <!-- Min Due -->
+      <div class="md:col-span-2">
+        <label class="text-sm font-semibold text-slate-700">Min Due</label>
+        <input type="number" step="0.01" name="min_due" value="{{ min_due }}" placeholder="e.g. 100" />
+      </div>
+
+      <!-- Sort -->
+      <div class="md:col-span-2">
+        <label class="text-sm font-semibold text-slate-700">Sort</label>
+        <select name="sort">
+          <option value="new" {% if sort == "new" %}selected{% endif %}>Newest</option>
+          <option value="name" {% if sort == "name" %}selected{% endif %}>Name (A-Z)</option>
+          <option value="due_desc" {% if sort == "due_desc" %}selected{% endif %}>Due (High → Low)</option>
+          <option value="due_asc" {% if sort == "due_asc" %}selected{% endif %}>Due (Low → High)</option>
+        </select>
+      </div>
+
+      <!-- Buttons -->
+      <div class="md:col-span-1 flex gap-2">
+        <button class="w-full px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800">
+          Go
+        </button>
+      </div>
+
+      <div class="md:col-span-12 flex justify-end">
+        <a href="{% url 'customers:customer_list' %}"
+           class="px-4 py-2 rounded-xl bg-white border border-slate-200 font-semibold hover:bg-slate-50">
+          Reset Filters
+        </a>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600 border-b">
+          <tr class="text-left">
+            <th class="py-3 px-4">Name</th>
+            <th class="py-3 px-4">Phone</th>
+            <th class="py-3 px-4">Total Due</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for c in customers %}
+            <tr class="border-b last:border-b-0 hover:bg-slate-50">
+              <td class="py-3 px-4 font-semibold text-slate-900">{{ c.name }}</td>
+              <td class="py-3 px-4 text-slate-700">{{ c.phone }}</td>
+
+              <!-- ✅ 3 digits after decimal -->
+              <td class="py-3 px-4">
+                {% if c.total_due_calc > 0 %}
+                  <span class="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 font-semibold">
+                    {{ c.total_due_calc|floatformat:2 }}
+                  </span>
+                {% else %}
+                  <span class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-semibold">
+                    0.000
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="py-3 px-4">
+                <div class="flex justify-end gap-2">
+                  <a href="{% url 'customers:customer_detail' c.pk %}"
+                     class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50">
+                    View
+                  </a>
+
+                  <a href="{% url 'customers:customer_update' c.pk %}"
+                     class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600">
+                    Edit
+                  </a>
+
+                  <a href="{% url 'customers:customer_delete' c.pk %}"
+                     class="px-3 py-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                    Delete
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="py-10 text-center text-slate-500">
+                No customers found.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+  </div>
+
+{% endblock %}

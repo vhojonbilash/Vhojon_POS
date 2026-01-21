@@ -1,0 +1,7 @@
+Now I want to implement expenses feature.
+
+there will be different types of expense.
+1) Utility bill (Current bill, Gas Bill,)-> I would able to add different type of bill name as object.
+2) I will make a model Staff. there will role Staff. (Waiter, Chef, Assistant Chef). Role will be different model. so that I can make role anytime.(For staff I want create a new djago app)
+3) Another expense type is for a restaurant they need to buy raw material some product weight calculate in kg. some product in litter. Some product in per quantity price so we need to handle it.
+4) We will calculate total 3 types of expense .-> 1) Utility bill, 2) Raw material 3) Staff salary. And last one is Others expenses. So I will implement it step by step.  

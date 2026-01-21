@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-[calc(100vh-64px)] bg-slate-50">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Staff Roles</h1>
+        <p class="text-sm text-slate-500">Manage role names</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="{% url 'staff:staff_list' %}" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">
+          Back
+        </a>
+        <a href="{% url 'staff:role_create' %}" class="px-4 py-2 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700">
+          + Add Role
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+          <tr>
+            <th class="text-left p-3 font-semibold">Role Name</th>
+            <th class="text-right p-3 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in roles %}
+            <tr class="hover:bg-slate-50/70">
+              <td class="p-3 font-semibold text-slate-900">{{ r.name }}</td>
+              <td class="p-3">
+                <div class="flex justify-end gap-2">
+                  <a href="{% url 'staff:role_update' r.pk %}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold">Edit</a>
+                  <a href="{% url 'staff:role_delete' r.pk %}" class="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-semibold">Delete</a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="2" class="p-6 text-slate-500">No roles created.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
