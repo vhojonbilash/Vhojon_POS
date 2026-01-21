@@ -121,18 +121,14 @@
             </div>
 
             <div class="flex flex-wrap gap-3">
-              <a href="{% url 'orders:create_pos_order' %}"
+              <a href="{% url 'orders:order_create' %}"
                  class="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 hover:bg-orange-600
                         text-white font-semibold px-5 py-3 shadow-md shadow-orange-500/20 transition">
                 <span class="text-lg leading-none">+</span>
                 New POS Order
               </a>
 
-              <a href="#"
-                 class="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 hover:bg-slate-800
-                        text-white font-semibold px-5 py-3 shadow-md shadow-slate-900/10 transition">
-                Website Order (Manual)
-              </a>
+              
 
               <!-- Update this URL when your expense create page is ready -->
               <a href="{% url 'expenses:dashboard' %}"
@@ -291,7 +287,7 @@
               </div>
 
               <div class="mt-4 space-y-3">
-                <a href="{% url 'orders:create_pos_order' %}"
+                <a href="{% url 'orders:order_create' %}"
                    class="block w-full text-center rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 transition shadow-md shadow-orange-500/20">
                   + New POS Order
                 </a>
