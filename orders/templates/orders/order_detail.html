@@ -23,11 +23,31 @@
       <p class="text-sm text-slate-500 mb-2">Customer</p>
 
       <p class="text-lg font-semibold text-slate-900">
-        {% if order.customer %}{{ order.customer }}{% else %}Walk-in{% endif %}
+        {% if order.customer %}
+          {{ order.customer }}
+        {% elif order.guest_name %}
+          {{ order.guest_name }}
+        {% else %}
+          Walk-in
+        {% endif %}
       </p>
 
+      {% comment %} Address (customer address OR guest address) {% endcomment %}
       {% if order.customer_address %}
-        <p class="text-sm text-slate-600 mt-2">{{ order.customer_address }}</p>
+        <p class="text-sm text-slate-600 mt-2">
+          {% if order.customer_address.address %}
+            {{ order.customer_address.address }}
+          {% else %}
+            {{ order.customer_address }}
+          {% endif %}
+        </p>
+      {% elif order.guest_address %}
+        <p class="text-sm text-slate-600 mt-2">{{ order.guest_address }}</p>
+      {% endif %}
+
+      {% comment %} Optional guest phone display {% endcomment %}
+      {% if not order.customer and order.guest_phone %}
+        <p class="text-sm text-slate-600 mt-1">Phone: {{ order.guest_phone }}</p>
       {% endif %}
     </div>
 
@@ -93,14 +113,44 @@
             <th class="py-2 pr-4">Line Total</th>
           </tr>
         </thead>
+
         <tbody>
           {% for it in items %}
             <tr class="border-b last:border-b-0">
-              <td class="py-3 pr-4">{{ it.product }}</td>
+              <td class="py-3 pr-4">
+                {% if it.product %}{{ it.product }}{% else %}-{% endif %}
+              </td>
+
               <td class="py-3 pr-4">{{ it.qty }}</td>
-              <td class="py-3 pr-4">{{ it.price }}</td>
-              <td class="py-3 pr-4">{{ it.discount_amount }}</td>
-              <td class="py-3 pr-4 font-semibold">{{ it.line_total }}</td>
+
+              <!-- ✅ FIX: show unit price properly -->
+              <td class="py-3 pr-4">
+                {% if it.unit_price is not None %}
+                  {{ it.unit_price }}
+                {% elif it.price is not None %}
+                  {{ it.price }}
+                {% elif it.product and it.product.sale_price %}
+                  {{ it.product.sale_price }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td class="py-3 pr-4">
+                {% if it.discount_amount is not None %}
+                  {{ it.discount_amount }}
+                {% else %}
+                  0.00
+                {% endif %}
+              </td>
+
+              <td class="py-3 pr-4 font-semibold">
+                {% if it.line_total is not None %}
+                  {{ it.line_total }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
             <tr>
@@ -126,10 +176,10 @@
             <th class="py-2 pr-4">Date</th>
           </tr>
         </thead>
+
         <tbody>
           {% for p in payments %}
             <tr class="border-b last:border-b-0">
-              <!-- ✅ FIXED METHOD DISPLAY -->
               <td class="py-3 pr-4">
                 {% if p.get_method_display %}
                   {{ p.get_method_display }}
@@ -145,8 +195,24 @@
               </td>
 
               <td class="py-3 pr-4 font-semibold">{{ p.amount }}</td>
-              <td class="py-3 pr-4">{{ p.reference|default:"-" }}</td>
-              <td class="py-3 pr-4">{{ p.created_at }}</td>
+
+              <td class="py-3 pr-4">
+                {% if p.reference_no %}
+                  {{ p.reference_no }}
+                {% elif p.reference %}
+                  {{ p.reference }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td class="py-3 pr-4">
+                {% if p.created_at %}
+                  {{ p.created_at|date:"M d, Y, h:i a" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
             <tr>

@@ -18,7 +18,6 @@
     --vb-ink:#0f172a;
   }
 
-  /* Page feel */
   .vb-wrap{ position:relative; }
   .vb-wrap::before{
     content:"";
@@ -35,7 +34,6 @@
   }
   .vb-wrap > *{ position:relative; z-index:1; }
 
-  /* Cards */
   .vb-card{
     background: rgba(255,255,255,.86);
     border:1px solid rgba(15,23,42,.08);
@@ -72,7 +70,6 @@
     background:linear-gradient(135deg, rgba(255,166,9,.16), rgba(66,173,54,.12));
   }
 
-  /* Accent strip */
   .vb-accent-strip{
     height:3px;
     background:linear-gradient(90deg, var(--vb-orange), var(--vb-green));
@@ -80,7 +77,6 @@
     margin:0 18px 14px 18px;
   }
 
-  /* Inputs */
   .vb-label{
     display:block;
     font-size:.78rem;
@@ -89,6 +85,7 @@
     margin-bottom:.35rem;
   }
   .vb-help{ font-size:.72rem; color:rgba(15,23,42,.55); }
+  .vb-help-strong{ font-size:.75rem; color:rgba(15,23,42,.7); font-weight:800; }
   .vb-input :is(input,select,textarea){
     width:100%;
     border-radius:14px !important;
@@ -105,7 +102,6 @@
   }
   .vb-input textarea{ min-height:74px; resize:vertical; }
 
-  /* ✅ Select2 styling to match */
   .select2-container { width: 100% !important; }
   .select2-container .select2-selection--single{
     height: 42px !important;
@@ -135,7 +131,6 @@
     border: 1px solid rgba(15,23,42,.14) !important;
   }
 
-  /* Buttons */
   .vb-btn{
     display:inline-flex;
     align-items:center;
@@ -167,7 +162,6 @@
   }
   .vb-btn-danger:hover{ filter:brightness(1.02); transform: translateY(-1px); }
 
-  /* Suggestions dropdown */
   .vb-suggestions{
     border:1px solid rgba(15,23,42,.12);
     border-radius:14px;
@@ -186,7 +180,6 @@
     background:linear-gradient(90deg, rgba(255,166,9,.10), rgba(66,173,54,.10));
   }
 
-  /* Color blocks inside cards */
   .vb-pane{
     border:1px solid rgba(15,23,42,.08);
     border-radius:16px;
@@ -198,7 +191,6 @@
     border:1px solid rgba(15,23,42,.06);
   }
 
-  /* Order items: “table-card” layout */
   .vb-item{
     border-radius:18px;
     border:1px solid rgba(66,173,54,.22);
@@ -221,7 +213,6 @@
     .vb-item-grid{ grid-template-columns: 1fr 1fr; }
   }
 
-  /* Line total chip */
   .vb-line{
     display:flex;
     align-items:center;
@@ -239,7 +230,6 @@
     border:1px solid rgba(15,23,42,.08);
   }
 
-  /* Summary box */
   .vb-summary{
     border-radius:18px;
     background: linear-gradient(135deg, rgba(255,166,9,.16), rgba(66,173,54,.14));
@@ -270,7 +260,6 @@
   }
   .vb-due{ color:#dc2626 !important; }
 
-  /* Submit message style */
   #submit-msg{
     padding:.55rem .8rem;
     border-radius:14px;
@@ -289,6 +278,9 @@
         <div>
           <div class="text-sm font-extrabold text-slate-900">New POS Order</div>
           <div class="text-xs text-slate-500">Create a professional order with items, discounts & payments.</div>
+          <div class="mt-2 vb-help-strong">
+            Customer phone is optional. Leave blank for Walk-in / Guest order.
+          </div>
         </div>
       </div>
     </div>
@@ -300,7 +292,7 @@
     <!-- CUSTOMER -->
     <div class="vb-card">
       <div class="vb-card-header">
-        <div class="vb-title">Customer <span class="vb-badge">Search & Autofill</span></div>
+        <div class="vb-title">Customer <span class="vb-badge">Optional</span></div>
       </div>
       <div class="vb-accent-strip"></div>
 
@@ -327,7 +319,7 @@
               </div>
 
               <p class="vb-help mt-3">
-                Select an existing phone to auto-fill name & address. For new customer, fill manually.
+                Search existing customer by phone. Or keep blank for guest order.
               </p>
             </div>
           </div>
@@ -337,7 +329,7 @@
             <div class="vb-pane-inner p-4">
               <div class="flex items-center justify-between mb-3">
                 <div class="text-sm font-extrabold text-slate-900">Customer Details</div>
-                <span class="vb-badge">New / Existing</span>
+                <span class="vb-badge">Optional</span>
               </div>
 
               <div class="grid grid-cols-1 gap-3 text-sm vb-input">
@@ -630,8 +622,6 @@
   const SUGGEST_URL  = "{% url 'customers:phone_suggest' %}";
   const AUTOFILL_URL = "{% url 'customers:customer_by_phone' %}";
   const PRICE_URL    = "{% url 'catalog:product_price' %}";
-
-  // ✅ NEW: product search URL
   const PRODUCT_SEARCH_URL = "{% url 'orders:product_search' %}";
 
   const formEl = document.getElementById("order-form");
@@ -644,7 +634,6 @@
   const phoneField = document.getElementById("id_phone");
   const addressField = document.getElementById("id_address");
 
-  // Summary fields
   const sumSubtotal = document.getElementById("sum-subtotal");
   const sumItemDiscount = document.getElementById("sum-item-discount");
   const sumTotalDiscount = document.getElementById("sum-total-discount");
@@ -662,6 +651,58 @@
     if (Number.isNaN(n)) return "0.00";
     return n.toFixed(2);
   }
+
+  // =========================================================
+  // ✅ Auto-fill FIRST payment amount with GRAND TOTAL (editable)
+  // - Works when you add 2nd/3rd item: updates payment amount
+  // - If user types manually, we stop overwriting
+  // - If user clears field, auto-fill becomes active again
+  // =========================================================
+  function getFirstPaymentAmountInput() {
+    if (!paymentsCardEl) return null;
+
+    const amountInputs = paymentsCardEl.querySelectorAll("input[name$='-amount']");
+    for (const inp of amountInputs) {
+      const pane = inp.closest(".vb-pane") || inp.closest(".vb-pane-inner") || inp.parentElement;
+
+      const del = pane?.querySelector("input[type='checkbox'][name$='-DELETE']");
+      if (del && del.checked) continue;
+      if (pane && pane.classList.contains("hidden")) continue;
+
+      return inp;
+    }
+    return null;
+  }
+
+  function markPaymentManual(inp) {
+    inp.dataset.manual = "1";
+  }
+
+  function clearPaymentManualIfEmpty(inp) {
+    if ((inp.value || "").trim() === "") {
+      delete inp.dataset.manual;
+    }
+  }
+
+  function autoFillPaymentAmount(grandValue) {
+    const inp = getFirstPaymentAmountInput();
+    if (!inp) return;
+
+    // user already edited -> don't overwrite
+    if (inp.dataset.manual === "1") return;
+
+    // always keep it synced while still in auto mode
+    inp.value = money(grandValue);
+  }
+
+  // If user edits payment amount manually, stop auto-fill
+  paymentsCardEl?.addEventListener("input", (e) => {
+    if (e.target.matches("input[name$='-amount']")) {
+      markPaymentManual(e.target);
+      clearPaymentManualIfEmpty(e.target);
+      calcSummary(); // keep summary updated
+    }
+  });
 
   function hideSuggestions() {
     suggestionsBox.classList.add("hidden");
@@ -693,17 +734,11 @@
     return await res.json();
   }
 
-  // =========================================================
-  // ✅ Select2 init for product search (works with formset rows)
-  // =========================================================
   function initSelect2Products(scopeEl) {
-    // scopeEl: row or document
     const $scope = scopeEl ? $(scopeEl) : $(document);
 
     $scope.find("select.js-product-search").each(function () {
       const $sel = $(this);
-
-      // prevent duplicate init
       if ($sel.hasClass("select2-hidden-accessible")) return;
 
       $sel.select2({
@@ -716,10 +751,7 @@
           dataType: "json",
           delay: 250,
           data: function (params) {
-            return {
-              q: params.term || "",
-              page: params.page || 1
-            };
+            return { q: params.term || "", page: params.page || 1 };
           },
           processResults: function (data, params) {
             params.page = params.page || 1;
@@ -734,10 +766,12 @@
     });
   }
 
-  // PHONE SEARCH + AUTO FILL
+  // ✅ PHONE SEARCH (does NOT force phone mandatory)
   existingPhone?.addEventListener("input", (e) => {
     const q = e.target.value.trim();
-    if (phoneField) phoneField.value = q;
+
+    if (phoneField && q) phoneField.value = q;
+    if (phoneField && !q) phoneField.value = "";
 
     if (q.length < 2) {
       hideSuggestions();
@@ -760,6 +794,7 @@
     if (!btn) return;
 
     const phone = btn.dataset.phone;
+
     existingPhone.value = phone;
     if (phoneField) phoneField.value = phone;
 
@@ -831,6 +866,9 @@
     const tax = Number(document.getElementById("id_tax_amount")?.value || 0);
     const grand = Math.max(0, itemsTotalAfterItemDisc + tax);
 
+    // ✅ Keep payment amount always synced with grand total while in auto mode
+    autoFillPaymentAmount(grand);
+
     let paid = 0;
     paymentsCardEl?.querySelectorAll("input[name$='-amount']").forEach(inp => {
       paid += Number(inp.value || 0);
@@ -852,7 +890,6 @@
     const deleteCheckbox = row.querySelector("input[type='checkbox'][name$='-DELETE']");
 
     removeBtn?.addEventListener("click", () => {
-      // ✅ if select2 exists, destroy it to avoid memory leaks
       const sel = row.querySelector("select.js-product-search");
       if (sel && $(sel).hasClass("select2-hidden-accessible")) {
         $(sel).select2("destroy");
@@ -870,7 +907,6 @@
     const productSelect = row.querySelector("select[name$='-product']");
     const unitInput = row.querySelector("input[name$='-unit_price']");
 
-    // ✅ When product changes (normal or select2)
     const onProductSelected = async () => {
       const pid = productSelect?.value;
       if (!pid) return;
@@ -881,15 +917,11 @@
       calcSummary();
     };
 
-    // normal change
     productSelect?.addEventListener("change", onProductSelected);
 
-    // select2 selection event
     if (productSelect) {
       $(productSelect).on("select2:select", onProductSelected);
-      $(productSelect).on("select2:clear", () => {
-        calcSummary();
-      });
+      $(productSelect).on("select2:clear", () => calcSummary());
     }
 
     ["input", "change", "keyup"].forEach(ev => {
@@ -905,13 +937,10 @@
       });
     });
 
-    // ✅ init select2 for this row
     initSelect2Products(row);
   }
 
-  // ✅ init select2 for initial rows
   initSelect2Products(document);
-
   document.querySelectorAll(".order-item-row").forEach(bindRowEvents);
 
   addItemBtn?.addEventListener("click", () => {
@@ -926,7 +955,6 @@
     itemsContainer.appendChild(newRow);
     totalInput.value = index + 1;
 
-    // ✅ Important: init select2 + bind
     bindRowEvents(newRow);
     calcSummary();
   });
@@ -935,10 +963,7 @@
     document.getElementById("id_tax_amount")?.addEventListener(ev, calcSummary);
   });
 
-  paymentsCardEl?.addEventListener("input", (e) => {
-    if (e.target.matches("input[name$='-amount']")) calcSummary();
-  });
-
+  // first calculation
   calcSummary();
 
   // SUBMIT AS JSON (AJAX POST)
@@ -980,9 +1005,6 @@
       submitMsg.textContent = `✅ Order Created: ${data.order_no} | Due: ${data.due_total}`;
       submitMsg.className = "text-sm text-emerald-700 font-semibold";
 
-      // ✅ ✅ NEW CHANGE: Redirect to Print Options page
-      // expects backend to return: redirect_url
-      // fallback: /orders/<id>/print/
       window.location.href = data.redirect_url || `/orders/${data.order_id}/print/`;
 
     } catch (err) {

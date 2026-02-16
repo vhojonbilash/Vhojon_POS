@@ -1,4 +1,5 @@
 # orders/views.py
+from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
@@ -6,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.core.paginator import Paginator
 
 from customers.models import CustomerAddress
@@ -16,12 +17,33 @@ from .forms import CustomerCreateOrSelectForm, OrderForm, OrderItemFormSet, Paym
 from .models import Order
 from .utils import generate_order_no
 
-# ✅ Printer helpers (USB-Windows printing if you replaced orders/pos_printer.py)
 from .pos_printer import print_chef_kot, print_customer_receipt
 
 
 def is_ajax(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
+def _filter_date_range(qs, field_name, from_date, to_date):
+    """
+    Filters a queryset by date range using a DateTimeField or DateField.
+    If it's a DateTimeField (common: created_at), we compare using __date.
+    """
+    if not from_date and not to_date:
+        return qs
+
+    # ✅ If your model uses a DateField like order_date, change these lookups:
+    #   - remove "__date__" from below.
+    # Example for DateField:
+    #   f"{field_name}__range"
+    #   f"{field_name}__gte"
+    #   f"{field_name}__lte"
+
+    if from_date and to_date:
+        return qs.filter(**{f"{field_name}__date__range": (from_date, to_date)})
+    if from_date:
+        return qs.filter(**{f"{field_name}__date__gte": from_date})
+    return qs.filter(**{f"{field_name}__date__lte": to_date})
 
 
 # =====================================================
@@ -60,7 +82,7 @@ def product_search(request):
 
 
 # =====================================================
-# ✅ CREATE ORDER
+# ✅ CREATE ORDER (Customer optional)
 # =====================================================
 @login_required
 @transaction.atomic
@@ -73,8 +95,25 @@ def order_create(request):
         items_formset = OrderItemFormSet(request.POST, instance=temp_order)
         pay_formset = PaymentFormSet(request.POST, instance=temp_order)
 
-        if cust_form.is_valid() and form.is_valid() and items_formset.is_valid() and pay_formset.is_valid():
-            customer = cust_form.get_or_create_customer()
+        # ✅ validate core parts first
+        base_ok = form.is_valid() and items_formset.is_valid() and pay_formset.is_valid()
+
+        # ✅ detect if user actually entered customer info
+        entered_existing_phone = (request.POST.get("existing_phone") or "").strip()
+        entered_phone = (request.POST.get("phone") or "").strip()
+        entered_name = (request.POST.get("name") or "").strip()
+        entered_address = (request.POST.get("address") or "").strip()
+
+        customer_requested = bool(entered_existing_phone or entered_phone or entered_name or entered_address)
+
+        # ✅ only validate customer form if user provided something
+        cust_ok = cust_form.is_valid() if customer_requested else True
+
+        if base_ok and cust_ok:
+            customer = None
+
+            if customer_requested:
+                customer = cust_form.get_or_create_customer()
 
             order = form.save(commit=False)
             order.order_no = generate_order_no()
@@ -87,6 +126,16 @@ def order_create(request):
                     .first()
                 )
                 order.customer_address = addr
+                # clear guest fields (optional)
+                order.guest_name = None
+                order.guest_phone = None
+                order.guest_address = None
+            else:
+                # ✅ store guest info directly on order (phone can be null)
+                order.guest_name = entered_name or None
+                order.guest_phone = entered_phone or None
+                order.guest_address = entered_address or None
+                order.customer_address = None
 
             if not order.source:
                 order.source = Order.Source.STORE
@@ -103,7 +152,6 @@ def order_create(request):
 
             order.recalc_totals()
 
-            # ✅ redirect to print options page
             if is_ajax(request):
                 return JsonResponse({
                     "ok": True,
@@ -125,7 +173,7 @@ def order_create(request):
         if is_ajax(request):
             return JsonResponse({
                 "ok": False,
-                "cust_errors": cust_form.errors,
+                "cust_errors": (cust_form.errors if customer_requested else {}),
                 "order_errors": form.errors,
                 "item_errors": [f.errors for f in items_formset],
                 "payment_errors": [f.errors for f in pay_formset],
@@ -172,12 +220,8 @@ def order_print_chef(request, pk):
 
     ok, msg = print_chef_kot(order)
 
-    # 🔥 force show exact message
     if not ok:
-        return JsonResponse({
-            "ok": False,
-            "error": msg
-        }, status=400)
+        return JsonResponse({"ok": False, "error": msg}, status=400)
 
     return JsonResponse({"ok": True, "message": msg})
 
@@ -189,13 +233,9 @@ def order_print_customer(request, pk):
     ok, msg = print_customer_receipt(order)
 
     if not ok:
-        return JsonResponse({
-            "ok": False,
-            "error": msg
-        }, status=400)
+        return JsonResponse({"ok": False, "error": msg}, status=400)
 
     return JsonResponse({"ok": True, "message": msg})
-
 
 
 # =====================================================
@@ -208,7 +248,8 @@ def order_detail(request, pk):
         pk=pk
     )
 
-    items = order.items.all()
+    # ✅ to show product info fast + avoid N+1 query
+    items = order.items.select_related("product").all()
     payments = order.payments.all()
 
     return render(request, "orders/order_detail.html", {
@@ -224,7 +265,7 @@ def create_pos_order(request):
 
 
 # =====================================================
-# ✅ ORDER LIST
+# ✅ ORDER LIST (✅ Updated: Date range + Totals)
 # =====================================================
 @login_required
 def order_list(request):
@@ -235,11 +276,23 @@ def order_list(request):
     source = request.GET.get("source", "").strip()
     due = request.GET.get("due", "").strip()
 
+    # ✅ NEW: date range inputs
+    from_str = request.GET.get("from_date", "").strip()
+    to_str = request.GET.get("to_date", "").strip()
+    from_date = date.fromisoformat(from_str) if from_str else None
+    to_date = date.fromisoformat(to_str) if to_str else None
+
+    # ✅ Choose the date field used for filtering
+    # Most common is created_at (DateTimeField). Change if needed.
+    DATE_FIELD = "created_at"
+
     if q:
         qs = qs.filter(
             Q(order_no__icontains=q) |
             Q(customer__name__icontains=q) |
-            Q(customer__phone__icontains=q)
+            Q(customer__phone__icontains=q) |
+            Q(guest_name__icontains=q) |
+            Q(guest_phone__icontains=q)
         )
 
     if status:
@@ -253,6 +306,23 @@ def order_list(request):
     elif due == "0":
         qs = qs.filter(due_total__lte=0)
 
+    # ✅ NEW: apply date filter
+    qs = _filter_date_range(qs, DATE_FIELD, from_date, to_date)
+
+    # ✅ NEW: totals for currently filtered qs (whole set, not only current page)
+    totals = qs.aggregate(
+        total_revenue=Sum("grand_total"),
+        total_paid=Sum("paid_total"),
+        total_due=Sum("due_total"),
+        total_discount=Sum("discount_amount"),
+    )
+
+    total_orders = qs.count()
+    total_revenue = totals["total_revenue"] or Decimal("0")
+    total_paid = totals["total_paid"] or Decimal("0")
+    total_due = totals["total_due"] or Decimal("0")
+    total_discount = totals["total_discount"] or Decimal("0")
+
     paginator = Paginator(qs, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -260,10 +330,23 @@ def order_list(request):
     context = {
         "page_obj": page_obj,
         "orders": page_obj.object_list,
+
         "q": q,
         "status": status,
         "source": source,
         "due": due,
+
+        # ✅ NEW: keep date filter values in template
+        "from_date": from_date,
+        "to_date": to_date,
+
+        # ✅ NEW: totals
+        "total_orders": total_orders,
+        "total_revenue": total_revenue,
+        "total_paid": total_paid,
+        "total_due": total_due,
+        "total_discount": total_discount,
+
         "status_choices": getattr(Order.Status, "choices", []),
         "source_choices": getattr(Order.Source, "choices", []),
         "due_choices": [

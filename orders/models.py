@@ -27,8 +27,8 @@ class Order(TimeStampedModel):
         STORE = "store", "Physical Store"
 
     class Status(models.TextChoices):
-        PENDING = "pending", "Pending"
         COMPLETED = "completed", "Completed"
+        PENDING = "pending", "Pending"
         CANCELLED = "cancelled", "Cancelled"
 
     class DiscountType(models.TextChoices):
@@ -40,6 +40,7 @@ class Order(TimeStampedModel):
     # -----------------------------
     order_no = models.CharField(max_length=50, unique=True)
 
+    # ✅ customer is optional now
     customer = models.ForeignKey(
         Customer,
         on_delete=models.SET_NULL,
@@ -54,6 +55,11 @@ class Order(TimeStampedModel):
         blank=True,
     )
 
+    # ✅ NEW: guest info (if no customer)
+    guest_name = models.CharField(max_length=120, blank=True, null=True)
+    guest_phone = models.CharField(max_length=30, blank=True, null=True)
+    guest_address = models.TextField(blank=True, null=True)
+
     source = models.CharField(
         max_length=10,
         choices=Source.choices,
@@ -62,12 +68,11 @@ class Order(TimeStampedModel):
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING,
+        default=Status.COMPLETED,
     )
 
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
-    # Order-level discount (optional, can be used in addition to item discount if you want)
     discount_type = models.CharField(
         max_length=10,
         choices=DiscountType.choices,
@@ -95,6 +100,27 @@ class Order(TimeStampedModel):
         return self.order_no
 
     # -----------------------------
+    # DISPLAY HELPERS (printing safe)
+    # -----------------------------
+    @property
+    def display_name(self) -> str:
+        if self.customer_id:
+            return getattr(self.customer, "name", "") or "Customer"
+        return self.guest_name or "Walk-in"
+
+    @property
+    def display_phone(self) -> str:
+        if self.customer_id:
+            return getattr(self.customer, "phone", "") or ""
+        return self.guest_phone or ""
+
+    @property
+    def display_address(self) -> str:
+        if self.customer_address_id:
+            return getattr(self.customer_address, "address", "") or ""
+        return self.guest_address or ""
+
+    # -----------------------------
     # DERIVED STATUS
     # -----------------------------
     @property
@@ -109,9 +135,6 @@ class Order(TimeStampedModel):
     # CALCULATIONS
     # -----------------------------
     def _calc_discount_amount(self) -> Decimal:
-        """
-        Order-level discount applied on subtotal (after item-level discounts).
-        """
         if not self.discount_type or self.discount_value in (None, ""):
             return Decimal("0.00")
 
@@ -125,10 +148,6 @@ class Order(TimeStampedModel):
 
     @transaction.atomic
     def recalc_totals(self):
-        """
-        Subtotal comes from OrderItem.line_total (already discounted per item).
-        Then order-level discount applies, then tax, then payments => due.
-        """
         items_total = self.items.aggregate(total=Sum("line_total"))["total"] or Decimal("0.00")
         self.subtotal = items_total
 
@@ -139,7 +158,6 @@ class Order(TimeStampedModel):
             (self.subtotal - self.discount_amount + (self.tax_amount or Decimal("0.00"))),
         ).quantize(Decimal("0.01"))
 
-        # update paid & due
         self.recalc_payments(save=False)
 
         self.save(update_fields=[
@@ -179,7 +197,6 @@ class OrderItem(TimeStampedModel):
     qty = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
-    # ✅ Per-item discount
     discount_type = models.CharField(
         max_length=10,
         choices=DiscountType.choices,
@@ -198,7 +215,6 @@ class OrderItem(TimeStampedModel):
         default=Decimal("0.00"),
     )
 
-    # net line total AFTER item discount
     line_total = models.DecimalField(
         max_digits=10,
         decimal_places=2,

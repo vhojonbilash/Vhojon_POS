@@ -9,7 +9,7 @@ from catalog.models import Product
 
 
 # =====================================================
-# CUSTOMER (SEARCH BY PHONE OR CREATE NEW)
+# CUSTOMER (SEARCH BY PHONE OR CREATE NEW)  ✅ phone optional
 # =====================================================
 class CustomerCreateOrSelectForm(forms.Form):
     existing_phone = forms.CharField(max_length=20, required=False, label="Phone Number")
@@ -30,16 +30,22 @@ class CustomerCreateOrSelectForm(forms.Form):
         phone = (data.get("phone") or "").strip()
         address = (data.get("address") or "").strip()
 
-        # mirror search phone into phone field for new customer creation
+        # ✅ if existing_phone typed and phone empty, mirror into phone
         if existing_phone and not phone:
             data["phone"] = existing_phone
             phone = existing_phone
 
-        # If phone exists -> valid existing customer
+        # ✅ If NOTHING provided -> walk-in/guest order (valid)
+        if not (existing_phone or name or phone or address):
+            return data
+
+        # ✅ If existing phone belongs to customer -> valid
         if existing_phone and Customer.objects.filter(phone=existing_phone).exists():
             return data
 
-        # New customer path: if phone provided, require name + address
+        # ✅ New customer path:
+        # If user provided phone, require name + address
+        # If no phone -> guest (do not force)
         if phone:
             if not name:
                 raise forms.ValidationError("Customer name is required for a new customer.")
@@ -49,6 +55,11 @@ class CustomerCreateOrSelectForm(forms.Form):
         return data
 
     def get_or_create_customer(self):
+        """
+        ✅ Returns:
+        - Customer object if existing/new customer created
+        - None if guest order (no valid phone)
+        """
         existing_phone = (self.cleaned_data.get("existing_phone") or "").strip()
         if existing_phone:
             existing = Customer.objects.filter(phone=existing_phone).first()
@@ -59,10 +70,11 @@ class CustomerCreateOrSelectForm(forms.Form):
         phone = (self.cleaned_data.get("phone") or "").strip()
         address = (self.cleaned_data.get("address") or "").strip()
 
+        # ✅ If no phone -> guest (do NOT create Customer)
         if not phone:
-            return None  # walk-in
+            return None
 
-        customer, _ = Customer.objects.get_or_create(
+        customer, created = Customer.objects.get_or_create(
             phone=phone,
             defaults={"name": name or "Customer"},
         )
@@ -87,11 +99,26 @@ class CustomerCreateOrSelectForm(forms.Form):
 
 # =====================================================
 # ORDER FORM
+# ✅ NEW CHANGE: default status = COMPLETED for Create page
 # =====================================================
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = ["source", "status", "discount_type", "discount_value", "tax_amount", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ✅ Only for CREATE (new order)
+        if not self.instance.pk:
+            # Force the displayed selected option
+            self.initial["status"] = Order.Status.COMPLETED
+            self.fields["status"].initial = Order.Status.COMPLETED
+
+            # If bound data doesn't have status (rare), set it
+            if "status" not in self.data:
+                # only works for unbound form; safe
+                pass
 
     def clean_discount_value(self):
         dv = self.cleaned_data.get("discount_value")
@@ -100,6 +127,7 @@ class OrderForm(forms.ModelForm):
         if dv < Decimal("0.00"):
             raise forms.ValidationError("Discount value cannot be negative.")
         return dv
+
 
 
 # =====================================================
@@ -113,10 +141,7 @@ class OrderItemForm(forms.ModelForm):
         })
     )
 
-    # unit_price optional (auto-fill)
     unit_price = forms.DecimalField(required=False)
-
-    # discount_value optional
     discount_value = forms.DecimalField(required=False)
 
     class Meta:
