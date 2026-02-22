@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Profit & Loss Report | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Profit & Loss Report{% endblock %}
+{% block top_subtitle %}See how much you earned and spent{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  .info-card { transition: all 0.2s ease; }
+  .info-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Date Filter -->
+<form method="get" class="mb-6 flex flex-wrap items-end gap-3 sm:gap-4 rounded-2xl bg-white p-4 sm:p-5 border border-slate-200 shadow-sm">
+  <div class="w-full sm:w-auto">
+    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">From</label>
+    <input type="date" name="from_date" value="{{ from_date|date:'Y-m-d' }}" class="!w-full sm:!w-44">
+  </div>
+  <div class="w-full sm:w-auto">
+    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">To</label>
+    <input type="date" name="to_date" value="{{ to_date|date:'Y-m-d' }}" class="!w-full sm:!w-44">
+  </div>
+  <div class="flex gap-2 w-full sm:w-auto">
+    <button type="submit"
+            class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-md transition">
+      <i class="fa-solid fa-filter mr-1"></i> Apply
+    </button>
+    <a href="{% url 'reports:profit_loss' %}"
+       class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition text-center">
+      Reset
+    </a>
+  </div>
+</form>
+
+<!-- ═══════════════════════  BIG RESULT BANNER  ═══════════════════════ -->
+<div class="mb-6 rounded-2xl sm:rounded-3xl overflow-hidden border
+            {% if net_profit >= 0 %}border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50{% else %}border-rose-200 bg-gradient-to-br from-rose-50 via-white to-rose-50{% endif %} shadow-sm">
+  <div class="p-5 sm:p-7 text-center">
+    <div class="inline-flex items-center gap-2 mb-2 px-3 py-1 rounded-full text-xs font-bold
+                {% if net_profit >= 0 %}bg-emerald-100 text-emerald-700{% else %}bg-rose-100 text-rose-700{% endif %}">
+      <i class="fa-solid {% if net_profit >= 0 %}fa-face-smile{% else %}fa-face-frown{% endif %}"></i>
+      {% if net_profit >= 0 %}You're Making Profit!{% else %}You're Running at a Loss{% endif %}
+    </div>
+    <p class="text-4xl sm:text-5xl font-black mt-2
+              {% if net_profit >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">
+      ৳ {{ net_profit|floatformat:0 }}
+    </p>
+    <p class="text-sm text-slate-500 mt-2">
+      Net {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %} • {{ from_date|date:"d M Y" }} — {{ to_date|date:"d M Y" }}
+      <span class="ml-2 font-semibold {% if net_margin >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">({{ net_margin }}% margin)</span>
+    </p>
+    {% if profit_change is not None %}
+    <p class="text-sm mt-2 font-semibold {% if profit_change >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+      {% if profit_change >= 0 %}<i class="fa-solid fa-arrow-up"></i>{% else %}<i class="fa-solid fa-arrow-down"></i>{% endif %}
+      {{ profit_change }}% compared to previous period
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ═══════════════════════  SUMMARY CARDS (Big, Simple) ═══════════════════════ -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6">
+  <!-- Revenue -->
+  <div class="info-card rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-400 to-pink-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center">
+        <i class="fa-solid fa-coins text-orange-600"></i>
+      </div>
+      <p class="text-xs font-bold text-slate-500 uppercase">Total Sales</p>
+    </div>
+    <p class="text-xl sm:text-2xl font-extrabold text-slate-900">৳ {{ revenue|floatformat:0 }}</p>
+    <p class="text-xs text-slate-400 mt-1">{{ order_count }} orders placed</p>
+    {% if revenue_change is not None %}
+    <p class="text-xs mt-1 font-semibold {% if revenue_change >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+      {% if revenue_change >= 0 %}▲{% else %}▼{% endif %} {{ revenue_change }}% vs previous
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- Gross Profit -->
+  <div class="info-card rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
+        <i class="fa-solid fa-arrow-trend-up text-emerald-600"></i>
+      </div>
+      <p class="text-xs font-bold text-slate-500 uppercase">Gross Profit</p>
+    </div>
+    <p class="text-xl sm:text-2xl font-extrabold {% if gross_profit >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">
+      ৳ {{ gross_profit|floatformat:0 }}
+    </p>
+    <p class="text-xs text-slate-400 mt-1">{{ gross_margin }}% margin</p>
+  </div>
+
+  <!-- Net Profit -->
+  <div class="info-card rounded-2xl border {% if net_profit >= 0 %}border-emerald-200 bg-emerald-50{% else %}border-rose-200 bg-rose-50{% endif %} shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 {% if net_profit >= 0 %}bg-gradient-to-r from-emerald-500 to-green-500{% else %}bg-gradient-to-r from-rose-500 to-red-500{% endif %}"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-9 h-9 rounded-xl {% if net_profit >= 0 %}bg-emerald-200{% else %}bg-rose-200{% endif %} flex items-center justify-center">
+        <i class="fa-solid fa-sack-dollar {% if net_profit >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}"></i>
+      </div>
+      <p class="text-xs font-bold text-slate-500 uppercase">Net Profit</p>
+    </div>
+    <p class="text-xl sm:text-2xl font-extrabold {% if net_profit >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">
+      ৳ {{ net_profit|floatformat:0 }}
+    </p>
+    <p class="text-xs text-slate-400 mt-1">{{ net_margin }}% margin</p>
+  </div>
+
+  <!-- Expenses -->
+  <div class="info-card rounded-2xl border border-rose-200 bg-white shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 to-red-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center">
+        <i class="fa-solid fa-receipt text-rose-600"></i>
+      </div>
+      <p class="text-xs font-bold text-slate-500 uppercase">Total Expenses</p>
+    </div>
+    <p class="text-xl sm:text-2xl font-extrabold text-rose-600">৳ {{ operating_expenses|floatformat:0 }}</p>
+    <p class="text-xs text-slate-400 mt-1">Product cost: ৳{{ cogs|floatformat:0 }}</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════  SIMPLE P&L TABLE (easy to read) ═══════════════════════ -->
+<div class="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden mb-6">
+  <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-200/70 bg-gradient-to-r from-slate-50 to-white">
+    <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+      <i class="fa-solid fa-file-lines text-orange-500"></i> Profit & Loss Statement
+    </h3>
+    <p class="text-xs sm:text-sm text-slate-500 mt-1">{{ from_date|date:"d M Y" }} — {{ to_date|date:"d M Y" }}</p>
+  </div>
+
+  <div class="p-3 sm:p-6 overflow-x-auto">
+    <table class="w-full text-sm">
+      <tbody>
+        <!-- Revenue Section -->
+        <tr class="bg-emerald-50/50">
+          <td class="py-3 px-3 sm:px-4 font-bold text-emerald-800 text-sm sm:text-base" colspan="2">
+            <i class="fa-solid fa-arrow-down-to-line mr-2 text-emerald-500"></i> Money Coming In (Revenue)
+          </td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-bag-shopping mr-1 text-slate-400 text-xs"></i>
+            Total Sales ({{ order_count }} orders)
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right font-semibold text-slate-800">৳ {{ revenue|floatformat:2 }}</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-tag mr-1 text-slate-400 text-xs"></i>
+            Discounts Given
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right text-rose-600">(৳ {{ discount|floatformat:2 }})</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-hand-holding-dollar mr-1 text-emerald-400 text-xs"></i>
+            Money Collected
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right font-semibold text-emerald-700">৳ {{ total_paid|floatformat:2 }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-clock mr-1 text-amber-400 text-xs"></i>
+            Still Owed (Due)
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right font-semibold text-amber-600">৳ {{ total_due|floatformat:2 }}</td>
+        </tr>
+
+        <!-- COGS Section -->
+        <tr class="bg-blue-50/50">
+          <td class="py-3 px-3 sm:px-4 font-bold text-blue-800 text-sm sm:text-base" colspan="2">
+            <i class="fa-solid fa-box mr-2 text-blue-500"></i> Product Cost (what you paid for items)
+          </td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">Cost of Products Sold</td>
+          <td class="py-2.5 px-3 sm:px-4 text-right text-rose-600 font-semibold">(৳ {{ cogs|floatformat:2 }})</td>
+        </tr>
+
+        <!-- Gross Profit -->
+        <tr class="bg-emerald-100/60 border-y-2 border-emerald-200">
+          <td class="py-3 px-3 sm:px-4 font-bold text-emerald-900 text-sm sm:text-base">
+            <i class="fa-solid fa-calculator mr-2 text-emerald-600"></i> Gross Profit (Sales - Product Cost)
+          </td>
+          <td class="py-3 px-3 sm:px-4 text-right font-bold text-lg {% if gross_profit >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">
+            ৳ {{ gross_profit|floatformat:2 }}
+            <span class="text-xs font-normal ml-1">({{ gross_margin }}%)</span>
+          </td>
+        </tr>
+
+        <!-- Operating Expenses -->
+        <tr class="bg-rose-50/50">
+          <td class="py-3 px-3 sm:px-4 font-bold text-rose-800 text-sm sm:text-base" colspan="2">
+            <i class="fa-solid fa-arrow-up-from-line mr-2 text-rose-500"></i> Money Going Out (Expenses)
+          </td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-bolt mr-1 text-sky-400 text-xs"></i> Utility Bills
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right text-slate-700">৳ {{ expenses.utility|floatformat:2 }}</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-wheat-awn mr-1 text-amber-400 text-xs"></i> Raw Material Purchases
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right text-slate-700">৳ {{ expenses.raw_material|floatformat:2 }}</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-user-group mr-1 text-violet-400 text-xs"></i> Staff Salaries
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right text-slate-700">৳ {{ expenses.salary|floatformat:2 }}</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 text-slate-600">
+            <i class="fa-solid fa-ellipsis mr-1 text-indigo-400 text-xs"></i> Other Expenses
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right text-slate-700">৳ {{ expenses.other|floatformat:2 }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="py-2.5 px-3 sm:px-4 pl-6 sm:pl-8 font-semibold text-slate-800">Total Running Costs</td>
+          <td class="py-2.5 px-3 sm:px-4 text-right font-bold text-rose-600">(৳ {{ operating_expenses|floatformat:2 }})</td>
+        </tr>
+
+        <!-- Net Profit -->
+        <tr class="{% if net_profit >= 0 %}bg-emerald-200/60 border-y-2 border-emerald-300{% else %}bg-rose-200/60 border-y-2 border-rose-300{% endif %}">
+          <td class="py-4 px-3 sm:px-4 font-bold text-base sm:text-xl {% if net_profit >= 0 %}text-emerald-900{% else %}text-rose-900{% endif %}">
+            <i class="fa-solid fa-flag-checkered mr-2"></i>
+            Final {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %} (After All Costs)
+          </td>
+          <td class="py-4 px-3 sm:px-4 text-right font-bold text-lg sm:text-xl {% if net_profit >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">
+            ৳ {{ net_profit|floatformat:2 }}
+            <span class="text-xs sm:text-sm font-normal ml-1">({{ net_margin }}%)</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════  CHARTS  ═══════════════════════ -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+  <!-- Revenue vs Profit Chart -->
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5">
+    <h4 class="text-sm sm:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <i class="fa-solid fa-chart-line text-orange-500"></i> Daily Sales vs Profit
+    </h4>
+    <canvas id="revenueProfitChart" height="260"></canvas>
+  </div>
+
+  <!-- Expense Breakdown -->
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5">
+    <h4 class="text-sm sm:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <i class="fa-solid fa-chart-pie text-rose-500"></i> Where Your Money Goes
+    </h4>
+    <canvas id="expenseChart" height="260"></canvas>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fromDate = '{{ from_date|date:"Y-m-d" }}';
+  const toDate = '{{ to_date|date:"Y-m-d" }}';
+  const params = `from_date=${fromDate}&to_date=${toDate}`;
+
+  // Revenue vs Profit line chart
+  fetch(`{% url 'reports:api_daily_revenue' %}?${params}`)
+    .then(r => r.json())
+    .then(data => {
+      new Chart(document.getElementById('revenueProfitChart'), {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            {
+              label: 'Total Sales (৳)',
+              data: data.revenue.map(Number),
+              borderColor: '#f97316',
+              backgroundColor: 'rgba(249,115,22,0.08)',
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: '#f97316',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+            },
+            {
+              label: 'Gross Profit (৳)',
+              data: data.profit.map(Number),
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16,185,129,0.08)',
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: '#10b981',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', font: { weight: 'bold' } } },
+            tooltip: {
+              backgroundColor: '#0f172a', cornerRadius: 12, padding: 12,
+              callbacks: { label: function(ctx) { return ctx.dataset.label + ': ৳ ' + ctx.parsed.y.toLocaleString(); } }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => '৳' + v.toLocaleString() } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    });
+
+  // Expense doughnut
+  fetch(`{% url 'reports:api_expense_breakdown' %}?${params}`)
+    .then(r => r.json())
+    .then(data => {
+      new Chart(document.getElementById('expenseChart'), {
+        type: 'doughnut',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            data: data.values.map(Number),
+            backgroundColor: ['#38bdf8', '#f59e0b', '#10b981', '#6366f1'],
+            borderWidth: 3,
+            borderColor: '#fff',
+            hoverOffset: 10,
+          }]
+        },
+        options: {
+          responsive: true,
+          cutout: '55%',
+          plugins: {
+            legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', font: { weight: 'bold', size: 13 }, padding: 16 } },
+            tooltip: {
+              backgroundColor: '#0f172a', cornerRadius: 12, padding: 12,
+              callbacks: { label: function(ctx) { return ctx.label + ': ৳ ' + Number(ctx.parsed).toLocaleString(); } }
+            }
+          }
+        }
+      });
+    });
+});
+</script>
+{% endblock %}

@@ -90,6 +90,15 @@ class Order(TimeStampedModel):
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
+    total_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"),
+        help_text="Total cost of goods sold (COGS) for this order",
+    )
+    gross_profit = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"),
+        help_text="Gross profit = grand_total - total_cost",
+    )
+
     paid_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     due_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
@@ -131,6 +140,13 @@ class Order(TimeStampedModel):
             return "PARTIAL"
         return "DUE"
 
+    @property
+    def profit_margin(self) -> Decimal:
+        """Gross profit margin percentage."""
+        if self.grand_total and self.grand_total > Decimal("0.00"):
+            return ((self.gross_profit / self.grand_total) * Decimal("100.00")).quantize(Decimal("0.01"))
+        return Decimal("0.00")
+
     # -----------------------------
     # CALCULATIONS
     # -----------------------------
@@ -148,8 +164,13 @@ class Order(TimeStampedModel):
 
     @transaction.atomic
     def recalc_totals(self):
-        items_total = self.items.aggregate(total=Sum("line_total"))["total"] or Decimal("0.00")
-        self.subtotal = items_total
+        agg = self.items.aggregate(
+            total=Sum("line_total"),
+            cost=Sum("line_cost"),
+            profit=Sum("line_profit"),
+        )
+        self.subtotal = agg["total"] or Decimal("0.00")
+        self.total_cost = agg["cost"] or Decimal("0.00")
 
         self.discount_amount = self._calc_discount_amount()
 
@@ -157,6 +178,7 @@ class Order(TimeStampedModel):
             Decimal("0.00"),
             (self.subtotal - self.discount_amount + (self.tax_amount or Decimal("0.00"))),
         ).quantize(Decimal("0.01"))
+        self.gross_profit = (self.grand_total - self.total_cost).quantize(Decimal("0.01"))
 
         self.recalc_payments(save=False)
 
@@ -164,6 +186,8 @@ class Order(TimeStampedModel):
             "subtotal",
             "discount_amount",
             "grand_total",
+            "total_cost",
+            "gross_profit",
             "paid_total",
             "due_total",
             "updated_at",
@@ -221,6 +245,19 @@ class OrderItem(TimeStampedModel):
         default=Decimal("0.00"),
     )
 
+    cost_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Cost price per unit at time of sale (auto-filled from product)",
+    )
+    line_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"),
+        help_text="Total cost for this line (cost_price * qty)",
+    )
+    line_profit = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"),
+        help_text="Gross profit for this line (line_total - line_cost)",
+    )
+
     def __str__(self):
         return f"{self.product.name} x {self.qty}"
 
@@ -237,9 +274,19 @@ class OrderItem(TimeStampedModel):
         return (gross * pct / Decimal("100.00")).quantize(Decimal("0.01"))
 
     def save(self, *args, **kwargs):
+        # Auto-fill cost_price from product if not set
+        if self.cost_price is None and self.product_id:
+            self.cost_price = self.product.cost_price or Decimal("0.00")
+
         gross = (Decimal(self.qty) * Decimal(self.unit_price)).quantize(Decimal("0.01"))
         self.discount_amount = self._calc_discount_amount(gross)
         self.line_total = max(Decimal("0.00"), (gross - self.discount_amount)).quantize(Decimal("0.01"))
+
+        # Calculate cost and profit
+        cp = Decimal(self.cost_price or "0.00")
+        self.line_cost = (Decimal(self.qty) * cp).quantize(Decimal("0.01"))
+        self.line_profit = (self.line_total - self.line_cost).quantize(Decimal("0.01"))
+
         super().save(*args, **kwargs)
 
 

@@ -137,7 +137,7 @@
     </div>
 
     <!-- EXPENSES -->
-    <div class="mb-2">
+    <div class="mb-5">
       <div class="px-3 mb-2 flex items-center gap-2">
         <span class="sb-dot"></span>
         <p class="text-[11px] uppercase tracking-wider text-white/45">Expenses</p>
@@ -149,6 +149,46 @@
           <i class="fa-solid fa-money-bill-wave text-rose-300"></i>
         </span>
         <span class="text-sm font-semibold">Expenses</span>
+      </a>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="mb-2">
+      <div class="px-3 mb-2 flex items-center gap-2">
+        <span class="sb-dot"></span>
+        <p class="text-[11px] uppercase tracking-wider text-white/45">Reports</p>
+      </div>
+
+      <a href="{% url 'reports:profit_loss' %}"
+         class="sb-item {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'profit_loss' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-chart-pie text-emerald-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Profit & Loss</span>
+      </a>
+
+      <a href="{% url 'reports:sales' %}"
+         class="sb-item {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'sales' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-chart-line text-orange-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Sales Report</span>
+      </a>
+
+      <a href="{% url 'reports:expenses' %}"
+         class="sb-item {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'expenses' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-file-invoice-dollar text-rose-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Expense Report</span>
+      </a>
+
+      <a href="{% url 'reports:products' %}"
+         class="sb-item {% if request.resolver_match.app_name == 'reports' and request.resolver_match.url_name == 'products' %}sb-active{% endif %}">
+        <span class="sb-icon">
+          <i class="fa-solid fa-ranking-star text-amber-300"></i>
+        </span>
+        <span class="text-sm font-semibold">Product Performance</span>
       </a>
     </div>
 

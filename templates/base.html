@@ -7,6 +7,7 @@
   <title>{% block title %}Vhojon Bilash POS{% endblock %}</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script>
     tailwind.config = {
       theme: {
@@ -15,49 +16,86 @@
     }
   </script>
 
+  <style>
+    /* ── Mobile sidebar ── */
+    #base-sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:40; }
+    #base-sidebar-overlay.active { display:block; }
+
+    @media (max-width: 1023px) {
+      #base-sidebar { position:fixed; left:-100%; top:0; z-index:50; transition: left 0.3s ease; height:100vh; }
+      #base-sidebar.open { left:0; }
+    }
+    @media (min-width: 1024px) {
+      #base-sidebar-overlay { display:none !important; }
+      #base-hamburger { display:none !important; }
+    }
+  </style>
+
   {% block extra_head %}{% endblock %}
 </head>
 
 <body class="bg-slate-100 min-h-screen">
   <div class="flex min-h-screen">
 
+    <!-- Sidebar Overlay (mobile) -->
+    <div id="base-sidebar-overlay" onclick="toggleBaseSidebar()"></div>
+
     <!-- Sidebar (global) -->
-    {% include "sidebar.html" %}
+    <div id="base-sidebar">
+      {% include "sidebar.html" %}
+    </div>
 
     <!-- Main -->
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col min-w-0">
 
       <!-- Topbar (global) -->
-      <nav class="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 class="text-lg font-semibold text-slate-800">{% block top_title %}Dashboard{% endblock %}</h1>
-          <p class="text-sm text-slate-500">{% block top_subtitle %}{% endblock %}</p>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <div class="text-sm text-slate-600">
-            Logged in as <span class="font-medium">{{ request.user.username }}</span>
+      <nav class="sticky top-0 z-20 bg-white/90 backdrop-blur-xl border-b border-slate-200/70 px-4 sm:px-6 py-3">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <!-- Hamburger (mobile) -->
+            <button id="base-hamburger" onclick="toggleBaseSidebar()"
+                    class="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 transition">
+              <i class="fa-solid fa-bars text-slate-700"></i>
+            </button>
+            <div>
+              <h1 class="text-lg font-bold text-slate-900">{% block top_title %}Dashboard{% endblock %}</h1>
+              <p class="text-xs sm:text-sm text-slate-500 hidden sm:block">{% block top_subtitle %}{% endblock %}</p>
+            </div>
           </div>
-          <a href="{% url 'logout' %}"
-             class="text-sm font-semibold text-orange-600 hover:text-orange-700">
-            Logout
-          </a>
+
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="hidden sm:flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2">
+              <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 text-white flex items-center justify-center shadow">
+                <span class="text-xs font-bold">{{ request.user.username|slice:":1"|upper }}</span>
+              </div>
+              <div class="leading-tight">
+                <p class="text-[10px] text-slate-500">Logged in as</p>
+                <p class="text-sm font-semibold text-slate-800">{{ request.user.username }}</p>
+              </div>
+            </div>
+            <a href="{% url 'logout' %}"
+               class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-3 py-2
+                      text-sm font-semibold text-orange-600 hover:bg-orange-50 transition">
+              <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+              <span class="hidden sm:inline">Logout</span>
+            </a>
+          </div>
         </div>
       </nav>
 
       <!-- Messages -->
-      <div class="p-6 pb-0">
+      <div class="px-3 sm:px-6 pt-4 pb-0">
         {% if messages %}
           <div class="max-w-6xl mx-auto space-y-2">
             {% for message in messages %}
-              <div class="rounded-xl px-4 py-3 shadow-sm border bg-white">{{ message }}</div>
+              <div class="rounded-xl px-4 py-3 shadow-sm border bg-white text-sm">{{ message }}</div>
             {% endfor %}
           </div>
         {% endif %}
       </div>
 
       <!-- Page content -->
-      <main class="p-6 flex-1">
+      <main class="p-3 sm:p-6 flex-1">
         <div class="max-w-6xl mx-auto">
           {% block content %}{% endblock %}
         </div>
@@ -78,6 +116,13 @@
     textarea{min-height:90px;}
     label{display:block;font-weight:600;margin-bottom:6px;color:#334155;}
   </style>
+
+  <script>
+    function toggleBaseSidebar() {
+      document.getElementById('base-sidebar').classList.toggle('open');
+      document.getElementById('base-sidebar-overlay').classList.toggle('active');
+    }
+  </script>
 
   {% block extra_js %}{% endblock %}
 </body>

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Report | Vhojon Bilash POS{% endblock %}
+{% block top_title %}Sales Report{% endblock %}
+{% block top_subtitle %}Your sales performance at a glance{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  .info-card { transition: all 0.2s ease; }
+  .info-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Date Filter -->
+<form method="get" class="mb-6 flex flex-wrap items-end gap-3 sm:gap-4 rounded-2xl bg-white p-4 sm:p-5 border border-slate-200 shadow-sm">
+  <div class="w-full sm:w-auto">
+    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">From</label>
+    <input type="date" name="from_date" value="{{ from_date|date:'Y-m-d' }}" class="!w-full sm:!w-44">
+  </div>
+  <div class="w-full sm:w-auto">
+    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">To</label>
+    <input type="date" name="to_date" value="{{ to_date|date:'Y-m-d' }}" class="!w-full sm:!w-44">
+  </div>
+  <div class="flex gap-2 w-full sm:w-auto">
+    <button type="submit"
+            class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-md transition">
+      <i class="fa-solid fa-filter mr-1"></i> Apply
+    </button>
+    <a href="{% url 'reports:sales' %}"
+       class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition text-center">
+      Reset
+    </a>
+  </div>
+</form>
+
+<!-- ═══════════════════════  SUMMARY CARDS  ═══════════════════════ -->
+<section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5 mb-6">
+  <!-- Revenue -->
+  <div class="info-card rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-400 to-pink-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center">
+        <i class="fa-solid fa-coins text-orange-600 text-sm"></i>
+      </div>
+      <p class="text-[10px] font-bold text-slate-500 uppercase">Total Sales</p>
+    </div>
+    <p class="text-lg sm:text-2xl font-extrabold text-slate-900">৳ {{ total_revenue|floatformat:0 }}</p>
+    <p class="text-[10px] text-slate-400 mt-1">All orders combined</p>
+  </div>
+
+  <!-- Orders -->
+  <div class="info-card rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center">
+        <i class="fa-solid fa-receipt text-indigo-600 text-sm"></i>
+      </div>
+      <p class="text-[10px] font-bold text-slate-500 uppercase">Total Orders</p>
+    </div>
+    <p class="text-lg sm:text-2xl font-extrabold text-slate-900">{{ total_orders }}</p>
+    <p class="text-[10px] text-slate-400 mt-1">Orders in this period</p>
+  </div>
+
+  <!-- Avg Order -->
+  <div class="info-card rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+        <i class="fa-solid fa-chart-bar text-blue-600 text-sm"></i>
+      </div>
+      <p class="text-[10px] font-bold text-slate-500 uppercase">Avg per Order</p>
+    </div>
+    <p class="text-lg sm:text-2xl font-extrabold text-slate-900">৳ {{ avg_order|floatformat:0 }}</p>
+    <p class="text-[10px] text-slate-400 mt-1">Average order value</p>
+  </div>
+
+  <!-- Collected -->
+  <div class="info-card rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm p-4 sm:p-5 relative overflow-hidden">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 to-green-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-8 h-8 rounded-xl bg-emerald-200 flex items-center justify-center">
+        <i class="fa-solid fa-hand-holding-dollar text-emerald-700 text-sm"></i>
+      </div>
+      <p class="text-[10px] font-bold text-slate-500 uppercase">Collected</p>
+    </div>
+    <p class="text-lg sm:text-2xl font-extrabold text-emerald-700">৳ {{ total_paid|floatformat:0 }}</p>
+    <p class="text-[10px] text-emerald-600 mt-1">Money received</p>
+  </div>
+
+  <!-- Outstanding -->
+  <div class="info-card rounded-2xl border border-amber-200 bg-amber-50 shadow-sm p-4 sm:p-5 relative overflow-hidden col-span-2 sm:col-span-1">
+    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-8 h-8 rounded-xl bg-amber-200 flex items-center justify-center">
+        <i class="fa-solid fa-clock text-amber-700 text-sm"></i>
+      </div>
+      <p class="text-[10px] font-bold text-slate-500 uppercase">Still Owed</p>
+    </div>
+    <p class="text-lg sm:text-2xl font-extrabold text-amber-700">৳ {{ total_due|floatformat:0 }}</p>
+    <p class="text-[10px] text-amber-600 mt-1">Due payments</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════  CHARTS  ═══════════════════════ -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5">
+    <h4 class="text-sm sm:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <i class="fa-solid fa-chart-column text-orange-500"></i> Daily Sales
+    </h4>
+    <canvas id="dailyRevenueChart" height="280"></canvas>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5">
+    <h4 class="text-sm sm:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <i class="fa-solid fa-chart-line text-indigo-500"></i> Orders per Day
+    </h4>
+    <canvas id="dailyOrdersChart" height="280"></canvas>
+  </div>
+</section>
+
+<!-- ═══════════════════════  TABLES ROW  ═══════════════════════ -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+  <!-- By Source -->
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div class="px-4 sm:px-6 py-4 border-b border-slate-200/70">
+      <h4 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-store text-indigo-500"></i> Sales by Source
+      </h4>
+      <p class="text-xs text-slate-400 mt-0.5">Where your orders are coming from</p>
+    </div>
+    <div class="p-3 sm:p-4 overflow-x-auto">
+      <table class="w-full text-xs sm:text-sm">
+        <thead class="text-slate-500">
+          <tr class="border-b">
+            <th class="text-left py-2">Source</th>
+            <th class="text-right py-2">Orders</th>
+            <th class="text-right py-2">Revenue</th>
+          </tr>
+        </thead>
+        <tbody class="text-slate-700">
+          {% for row in by_source %}
+          <tr class="border-b last:border-b-0 hover:bg-slate-50">
+            <td class="py-2.5">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold
+                {% if row.source == 'store' %}bg-indigo-100 text-indigo-700
+                {% else %}bg-cyan-100 text-cyan-700{% endif %}">
+                <i class="fa-solid {% if row.source == 'store' %}fa-store{% else %}fa-globe{% endif %} mr-1 text-[10px]"></i>
+                {{ row.source|title }}
+              </span>
+            </td>
+            <td class="py-2.5 text-right font-medium">{{ row.orders }}</td>
+            <td class="py-2.5 text-right font-bold">৳ {{ row.revenue|floatformat:0 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="py-6 text-center text-slate-400">No data</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- By Status -->
+  <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div class="px-4 sm:px-6 py-4 border-b border-slate-200/70">
+      <h4 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-emerald-500"></i> Orders by Status
+      </h4>
+      <p class="text-xs text-slate-400 mt-0.5">Completed, pending, or cancelled orders</p>
+    </div>
+    <div class="p-3 sm:p-4 overflow-x-auto">
+      <table class="w-full text-xs sm:text-sm">
+        <thead class="text-slate-500">
+          <tr class="border-b">
+            <th class="text-left py-2">Status</th>
+            <th class="text-right py-2">Count</th>
+            <th class="text-right py-2">Revenue</th>
+          </tr>
+        </thead>
+        <tbody class="text-slate-700">
+          {% for row in by_status %}
+          <tr class="border-b last:border-b-0 hover:bg-slate-50">
+            <td class="py-2.5">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold
+                {% if row.status == 'completed' %}bg-emerald-100 text-emerald-700
+                {% elif row.status == 'pending' %}bg-amber-100 text-amber-700
+                {% else %}bg-rose-100 text-rose-700{% endif %}">
+                <i class="fa-solid {% if row.status == 'completed' %}fa-check{% elif row.status == 'pending' %}fa-clock{% else %}fa-xmark{% endif %} mr-1 text-[10px]"></i>
+                {{ row.status|title }}
+              </span>
+            </td>
+            <td class="py-2.5 text-right font-medium">{{ row.count }}</td>
+            <td class="py-2.5 text-right font-bold">৳ {{ row.revenue|floatformat:0 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="py-6 text-center text-slate-400">No data</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════  DAILY BREAKDOWN  ═══════════════════════ -->
+<div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+  <div class="px-4 sm:px-6 py-4 border-b border-slate-200/70">
+    <h4 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+      <i class="fa-solid fa-calendar-days text-orange-500"></i> Day by Day Sales
+    </h4>
+    <p class="text-xs text-slate-400 mt-0.5">Detailed daily performance</p>
+  </div>
+  <div class="p-3 sm:p-4 overflow-x-auto">
+    <table class="w-full text-xs sm:text-sm">
+      <thead class="text-slate-500">
+        <tr class="border-b">
+          <th class="text-left py-2">Date</th>
+          <th class="text-right py-2">Orders</th>
+          <th class="text-right py-2">Sales</th>
+          <th class="text-right py-2">Profit</th>
+        </tr>
+      </thead>
+      <tbody class="text-slate-700">
+        {% for row in daily %}
+        <tr class="border-b last:border-b-0 hover:bg-slate-50">
+          <td class="py-2.5 font-medium">{{ row.day|date:"d M Y, D" }}</td>
+          <td class="py-2.5 text-right">{{ row.orders }}</td>
+          <td class="py-2.5 text-right font-semibold">৳ {{ row.revenue|floatformat:0 }}</td>
+          <td class="py-2.5 text-right font-semibold {% if row.profit >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+            {% if row.profit >= 0 %}
+            <i class="fa-solid fa-arrow-up text-[10px] mr-0.5"></i>
+            {% else %}
+            <i class="fa-solid fa-arrow-down text-[10px] mr-0.5"></i>
+            {% endif %}
+            ৳ {{ row.profit|floatformat:0 }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="py-6 text-center text-slate-400">No orders in this period</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fromDate = '{{ from_date|date:"Y-m-d" }}';
+  const toDate = '{{ to_date|date:"Y-m-d" }}';
+  const params = `from_date=${fromDate}&to_date=${toDate}`;
+
+  fetch(`{% url 'reports:api_daily_revenue' %}?${params}`)
+    .then(r => r.json())
+    .then(data => {
+      // Revenue bar chart
+      new Chart(document.getElementById('dailyRevenueChart'), {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: 'Daily Sales (৳)',
+            data: data.revenue.map(Number),
+            backgroundColor: 'rgba(249,115,22,0.7)',
+            borderColor: '#f97316',
+            borderWidth: 1,
+            borderRadius: 8,
+            hoverBackgroundColor: 'rgba(249,115,22,0.9)',
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a', cornerRadius: 12, padding: 12,
+              callbacks: { label: function(ctx) { return 'Sales: ৳ ' + ctx.parsed.y.toLocaleString(); } }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => '৳' + v.toLocaleString() } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Orders line chart
+      new Chart(document.getElementById('dailyOrdersChart'), {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: 'Orders',
+            data: data.orders,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.08)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointBackgroundColor: '#6366f1',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a', cornerRadius: 12, padding: 12,
+              callbacks: { label: function(ctx) { return ctx.parsed.y + ' orders'; } }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    });
+});
+</script>
+{% endblock %}
